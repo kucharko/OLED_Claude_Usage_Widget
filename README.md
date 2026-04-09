@@ -1,38 +1,68 @@
 # OLED Claude Usage Monitor Widget
 
-A desktop widget for real-time **Claude.ai** usage monitoring, built with Electron. Designed for OLED displays with burn-in prevention, transparent glass mode, and full accent color customization.
+A desktop widget for real-time **Claude.ai** usage monitoring, built with Electron.  
+Designed for OLED displays with burn-in prevention, transparent glass mode, and full accent color customization.
 
-> Fork of [Claude Usage Widget](https://github.com/SlavomirDurej/claude-usage-widget) by Slavomir Durej. See [CREDITS.md](CREDITS.md) for attribution.
+> Based on [Claude Usage Widget](https://github.com/SlavomirDurej/claude-usage-widget) by Slavomir Durej. See [CREDITS.md](CREDITS.md) for attribution.
+
+![OLED Theme — full view](assets/screenshots/oled-theme-full.png)
+
+---
+
+## Download
+
+**[Latest Release (v2.0.0)](https://github.com/kucharko/OLED_Claude_Usage_Widget/releases/latest)** — Windows Setup .exe + portable .exe
+
+Or build from source (see [Installation](#installation) below).
 
 ---
 
 ## Features
 
 ### Display Modes
-- **Dark / Light / OLED** themes with full accent color support
-- **Glass mode** — fully transparent background, only progress bars and data visible. Title bar and labels appear on mouse hover with configurable opacity
-- **Compact mode** — minimal two-bar view (290px wide)
+| Mode | Description |
+|---|---|
+| **Dark** | Default theme with gradient backgrounds |
+| **Light** | Bright theme for daytime use |
+| **OLED** | Pure black (#000000) backgrounds, dimmed UI, zero glow |
+| **Glass** | Fully transparent — only bars and data float on screen |
+| **Compact** | Minimal two-bar view (290px wide) |
 
 ### OLED Protection
-- **Pure black backgrounds** (#000000) to save power and prevent burn-in
-- **Pixel shift** — subtle content drift animation that prevents static elements from burning into the panel
-- Dimmed UI elements and reduced glow effects
+- **Pure black backgrounds** — real black pixels = pixels off on OLED
+- **Pixel shift** — subtle content drift animation prevents static burn-in
+- **Dimmed accents** — reduced brightness and no glow effects
 
 ### Customization
-- **Dual accent colors** — separate color for Session and Weekly bars (purple, blue, cyan, green, orange, red, pink)
-- **Window opacity** slider (20%-100%)
-- **Glass hover opacity** — controls how visible hidden elements become on hover
-- **Column toggles** — show/hide Elapsed, Resets In, Resets At columns
+- **Dual accent colors** — separate color for Session and Weekly (7 options each)
+- **Window opacity** — 20% to 100%
+- **Glass hover opacity** — how visible labels become on mouse hover
+- **Column toggles** — show/hide Elapsed, Resets In, Resets At
 - **Row toggles** — show/hide Current Session or Weekly Limit
-- **Claude logo** toggle next to session label
+- **Claude logo** — small icon next to session label
 
 ### Monitoring
-- Session and weekly usage with progress bars and circular timers
+- Session and weekly usage with progress bars + circular timers
 - Extra usage tracking (overage spending, prepaid credits)
 - 7-day usage history graph
-- Desktop notifications at configurable warning/danger thresholds
+- Desktop notifications at configurable thresholds
 - Auto-refresh (15s to 5min)
-- Session and weekly reset countdown timers
+
+---
+
+## Screenshots
+
+### Glass Mode — session only
+![Glass Mode — session only](assets/screenshots/glass-session-only.png)
+
+### Glass Mode — dual bars with pixel shift
+![Glass Mode — dual bars](assets/screenshots/glass-dual-bars.png)
+
+### Dark Theme
+![Dark Theme](assets/screenshots/dark-theme-compact.png)
+
+### Settings Panel
+![Settings](assets/screenshots/settings-panel.png)
 
 ---
 
@@ -40,74 +70,69 @@ A desktop widget for real-time **Claude.ai** usage monitoring, built with Electr
 
 ### Quick Start (Windows)
 
-1. Install [Node.js](https://nodejs.org/) (LTS version)
-2. Clone this repo:
-   ```
-   git clone https://github.com/kucharko/oled-claude-usage-monitor.git
-   cd oled-claude-usage-monitor
-   ```
-3. Run the installer:
-   ```
+1. Install [Node.js](https://nodejs.org/) (LTS)
+2. Clone and run:
+   ```bash
+   git clone https://github.com/kucharko/OLED_Claude_Usage_Widget.git
+   cd OLED_Claude_Usage_Widget
    install.bat
    ```
-   Choose option 1 to run immediately, or option 2 to build a Windows installer (.exe).
+3. Choose: **1** = run now, **2** = build .exe installer, **3** = both
 
 ### Manual
 
-```
+```bash
 npm install
 npm start
 ```
 
-### Build Windows Installer
+### Build .exe
 
-```
+```bash
 npm run build
 ```
 
-Output in `dist/` folder — NSIS Setup .exe + portable .exe.
+> **Note:** Building requires admin privileges on Windows (for symlink creation during packaging). Run your terminal as Administrator, or enable Developer Mode in Windows Settings.
+
+Output in `dist/`:
+- `OLED-Claude-Usage-Monitor-2.0.0-Setup.exe` — installer
+- `OLED-Claude-Usage-Monitor-2.0.0-portable.exe` — no install needed
 
 ---
 
 ## Setup
 
 1. Launch the app
-2. Click **Log in** to authenticate via Claude.ai, or use **Manual** to paste your session key
-3. Open Settings (gear icon) to customize theme, accents, columns, and display options
+2. Click **Log in** to authenticate via Claude.ai, or **Manual** to paste your session key
+3. Open Settings (gear icon) to customize everything
 
-### Getting a Session Key (Manual)
+### Getting a Session Key
 
 1. Open [claude.ai](https://claude.ai) in your browser
-2. Press `F12` to open DevTools
-3. Go to **Application** tab > **Cookies** > `https://claude.ai`
-4. Copy the value of `sessionKey`
-
----
-
-## Screenshots
-
-### OLED Theme
-![OLED Theme — full view](assets/screenshots/oled-theme-full.png)
-
-### Dark Theme
-![Dark Theme — compact view](assets/screenshots/dark-theme-compact.png)
-
-### Glass Mode
-![Glass Mode — session only](assets/screenshots/glass-session-only.png)
-
-![Glass Mode — dual bars with pixel shift](assets/screenshots/glass-dual-bars.png)
-
-### Settings
-![Settings panel](assets/screenshots/settings-panel.png)
+2. Press `F12` → **Application** tab → **Cookies** → `https://claude.ai`
+3. Copy the value of `sessionKey`
 
 ---
 
 ## Tech Stack
 
-- **Electron 41** — desktop framework (Chromium 136)
-- **Chart.js** — usage history graph
-- **electron-store** — settings persistence (OS keychain encrypted)
-- **Vanilla JS** — no frontend framework dependencies
+| Component | Version |
+|---|---|
+| Electron | 41.2.0 (Chromium 136) |
+| Chart.js | 4.5.1 |
+| electron-store | 8.2.0 (OS keychain encrypted) |
+| Frontend | Vanilla JS — no framework |
+
+---
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for full details.
+
+- Context isolation + strict CSP (`connect-src 'none'`)
+- Credentials encrypted via OS keychain
+- No external network from renderer — all API calls through IPC
+- 0 npm vulnerabilities (`npm audit`)
 
 ---
 
@@ -115,7 +140,7 @@ Output in `dist/` folder — NSIS Setup .exe + portable .exe.
 
 Based on **[Claude Usage Widget](https://github.com/SlavomirDurej/claude-usage-widget)** by **Slavomir Durej**.
 
-This fork adds OLED display support, glass mode, dual accent colors, pixel shift protection, column/row visibility controls, and various UI improvements. See [CREDITS.md](CREDITS.md) for full attribution.
+See [CREDITS.md](CREDITS.md) for full attribution and changes.
 
 ---
 
