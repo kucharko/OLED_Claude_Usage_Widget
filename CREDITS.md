@@ -3,7 +3,7 @@
 This application is based on **Claude Usage Widget** by **Slavomir Durej**.
 
 - Original repository: https://github.com/SlavomirDurej/claude-usage-widget
-- License: MIT
+- License: MIT (declared in package.json; no LICENSE file in original repo)
 - Original author: Slavomir Durej (https://github.com/SlavomirDurej)
 
 The original project was open-sourced under the MIT license, which permits
