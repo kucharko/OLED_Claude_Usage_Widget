@@ -1,0 +1,2416 @@
+/* Local font — Libre Baskerville (bundled, no external dependency) */
+@font-face {
+    font-family: 'Libre Baskerville';
+    font-style: normal;
+    font-weight: 400;
+    src: url('../../../assets/fonts/LibreBaskerville-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Libre Baskerville';
+    font-style: normal;
+    font-weight: 700;
+    src: url('../../../assets/fonts/LibreBaskerville-Bold.ttf') format('truetype');
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    outline: none;
+    /* Remove default focus outline */
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow: hidden;
+    background: transparent;
+    -webkit-app-region: no-drag;
+}
+
+#app {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.widget-container {
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(145deg, #191926 0%, #1e1e30 40%, #252540 100%);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Title Bar */
+.title-bar {
+    -webkit-app-region: drag;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px 12px;
+    padding-left: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    height: 36px;
+}
+
+.title {
+    color: #e0e0e0;
+    font-family: 'Libre Baskerville', serif;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.app-logo {
+    width: 19px;
+    height: 19px;
+    border-radius: 6px;
+    opacity: 0.8;
+}
+
+.controls {
+    -webkit-app-region: no-drag;
+    display: flex;
+    gap: 8px;
+    margin-right: -10px;
+}
+
+.control-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    color: #808098;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.control-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #e0e0f0;
+    transform: scale(1.05);
+}
+
+.control-btn:active {
+    transform: scale(0.95);
+}
+
+.refresh-btn svg {
+    display: block;
+}
+
+.close-btn:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+/* Loading State */
+.loading-container {
+    padding: 60px 20px;
+    text-align: center;
+    color: #a0a0a0;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+    /* border-top-color set by accent CSS variables */
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Login State */
+.login-container {
+    padding: 0 16px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-content {
+    width: 100%;
+}
+
+/* Step 1: Auto-detect */
+.login-step1 {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+}
+
+.step-icon svg {
+    color: #8b5cf6;
+    flex-shrink: 0;
+}
+
+.step-text {
+    flex: 1;
+}
+
+.step-text h3 {
+    color: #e0e0e0;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.step-text p {
+    color: #a0a0a0;
+    font-size: 11px;
+    margin: 0;
+}
+
+.step-hint {
+    color: #707070;
+    font-size: 9px;
+    margin-top: 2px;
+    font-style: italic;
+}
+
+.step-error {
+    color: #ef4444;
+    font-size: 9px;
+    margin-top: 2px;
+    min-height: 0;
+    word-break: break-word;
+}
+
+.auto-detect-btn {
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.auto-detect-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.2);
+}
+
+.auto-detect-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(139, 92, 246, 0.2);
+}
+
+.auto-detect-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.open-browser-link {
+    color: #a78bfa;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.open-browser-link:hover {
+    color: #c4b5fd;
+    text-decoration: underline;
+}
+
+.next-step-btn {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #a0a0a0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.next-step-btn:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+/* Step 2: Paste Session Key */
+.session-key-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.session-key-header h3 {
+    color: #e0e0e0;
+    font-size: 13px;
+    margin-bottom: 3px;
+}
+
+.session-key-header p {
+    color: #707070;
+    font-size: 10px;
+    margin-bottom: 0;
+}
+
+.session-key-header code {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+}
+
+.session-key-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.session-key-input-row input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #e0e0e0;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: monospace;
+    transition: border-color 0.2s;
+}
+
+.session-key-input-row input:focus {
+    border-color: #8b5cf6;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.session-key-input-row input::placeholder {
+    color: #505050;
+}
+
+.connect-btn {
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.connect-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.2);
+}
+
+.connect-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(139, 92, 246, 0.2);
+}
+
+.connect-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.session-key-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.session-key-error {
+    color: #ef4444;
+    font-size: 9px;
+    min-height: 14px;
+    max-height: 40px;
+    overflow-y: auto;
+    margin: 0;
+    flex: 1;
+    word-break: break-all;
+    font-family: monospace;
+}
+
+.back-step-btn {
+    background: none;
+    border: none;
+    color: #707070;
+    font-size: 10px;
+    cursor: pointer;
+    padding: 2px 4px;
+    transition: color 0.2s;
+    flex-shrink: 0;
+}
+
+.back-step-btn:hover {
+    color: #a0a0a0;
+}
+
+/* No Usage State */
+.no-usage-container {
+    padding: 0 16px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.no-usage-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+    width: 100%;
+}
+
+.no-usage-content svg {
+    color: #8b5cf6;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.no-usage-text-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.no-usage-content h3 {
+    color: #e0e0e0;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.no-usage-content p {
+    color: #a0a0a0;
+    font-size: 11px;
+    margin-bottom: 0;
+}
+
+/* Auto-Login Attempt State */
+.auto-login-container {
+    padding: 0 16px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auto-login-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+    width: 100%;
+}
+
+.auto-login-content .spinner {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.auto-login-text-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.auto-login-content h3 {
+    color: #e0e0e0;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.auto-login-content p {
+    color: #a0a0a0;
+    font-size: 11px;
+    margin-bottom: 0;
+}
+
+/* Main Content */
+.content {
+    padding: 16px 20px;
+    position: relative;
+}
+
+/* Expand Toggle */
+.expand-toggle {
+    display: flex;
+    justify-content: center;
+    padding: 2px 0 0;
+    cursor: pointer;
+}
+
+.expand-arrow {
+    color: #505050;
+    transition: all 0.2s ease;
+}
+
+.expand-toggle:hover .expand-arrow {
+    color: #a0a0a0;
+}
+
+.expand-arrow.expanded {
+    transform: rotate(180deg);
+}
+
+/* Expandable Section */
+.expand-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 12px;
+    padding-top: 6px;
+}
+
+.graph-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 12px;
+    padding: 14px 16px 8px 12px;
+    height: 220px;
+}
+
+.graph-section canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* .graph-btn.active colors set by accent CSS variables */
+
+
+.expand-section .usage-section {
+    height: 28px;
+    margin-bottom: 0;
+}
+
+.expand-section .usage-label {
+    font-size: 10px;
+    color: #808080;
+}
+
+.usage-section {
+    display: grid;
+    grid-template-columns: 115px minmax(0, 160px) 36px 72px 68px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 2px;
+    padding: 0 16px 0 12px;
+    height: 32px;
+}
+
+.usage-headers {
+    display: grid;
+    grid-template-columns: 115px minmax(0, 160px) 36px 72px 68px;
+    align-items: center;
+    gap: 10px;
+    padding: 0 16px 0 12px;
+    margin-bottom: 2px;
+}
+
+.col-header {
+    color: #505060;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+.col-header-center {
+    text-align: center;
+}
+
+.col-header-right {
+    text-align: right;
+}
+
+/* Bar + percentage grouped */
+.usage-bar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.usage-bar-group .progress-bar {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Circle + time grouped */
+.usage-timer-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Resets At column */
+.resets-at-text {
+    color: #a0a0b0;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.usage-section:last-of-type {
+    margin-bottom: 0;
+}
+
+/* usage-header was removed */
+
+
+/* We need to re-target the children of usage-header because display:contents strips the wrapper box */
+/* But the HTML structure is: 
+   .usage-section > .usage-header > span, span
+   .usage-section > .progress-bar
+   .usage-section > .timer-container
+*/
+/* Actually, let's just make usage-header NOT display contents, but hide it or remove it in HTML? 
+   Better: make usage-section a Flex Row? 
+   Or keeps Grid: 
+   Column 1: Label
+   Column 2: Progress (flexible)
+   Column 3: Percentage
+   Column 4: Timer
+*/
+
+.usage-label {
+    color: #a0a0a0;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.usage-percentage {
+    color: #e0e0e0;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: right;
+}
+
+/* Progress Bar */
+.progress-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0;
+    min-width: 80px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    /* Colors set by accent CSS variables */
+}
+
+/* .progress-fill.weekly colors set by --accent-w CSS variables */
+
+.progress-fill.extra {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.progress-fill.opus {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+/* Threshold color overrides for warning and danger states */
+.progress-fill.warning {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.progress-fill.danger {
+    background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+
+/* Circle only — centered in its column */
+.usage-elapsed-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 8px;
+}
+
+/* Timer elements sit inside usage-timer-group flex container */
+.mini-timer {
+    transform: rotate(-90deg);
+    flex-shrink: 0;
+}
+
+.timer-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 4;
+}
+
+.timer-progress {
+    fill: none;
+    stroke-width: 4;
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Stroke + filter set by accent CSS variables */
+}
+
+/* .timer-progress.weekly stroke set by --accent-w CSS variables */
+
+.timer-progress.extra {
+    stroke: #10b981;
+}
+
+.timer-progress.opus {
+    stroke: #f59e0b;
+}
+
+.timer-text {
+    color: #e0e0e0;
+    font-size: 12px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    font-family: inherit;
+    text-align: center;
+    white-space: nowrap;
+    width: 72px;
+}
+
+.timer-text.extra-spending,
+.usage-percentage.extra-spending {
+    font-size: 10px;
+    color: #10b981;
+    opacity: 0.8;
+}
+
+.timer-text.extra-balance-label {
+    font-size: 12px;
+    color: #a0a0a0;
+    font-weight: 400;
+    text-align: left;
+}
+
+.resets-at-text.extra-balance-amount {
+    font-size: 12px;
+    color: #a0a0a0;
+    font-weight: 400;
+    text-align: center;
+}
+
+.extra-status {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 2px 5px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.extra-status.on {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+.extra-status.off {
+    background: rgba(160, 160, 160, 0.12);
+    color: #808080;
+    border: 1px solid rgba(160, 160, 160, 0.3);
+}
+
+/* Settings Overlay */
+.settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(145deg, #191926 0%, #1e1e30 40%, #252540 100%);
+    z-index: 1000;
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+}
+
+.settings-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
+}
+
+.settings-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(145deg, #191926 0%, #1e1e30 40%, #252540 100%);
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 10;
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px 8px 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    height: 36px;
+    -webkit-app-region: drag;
+}
+
+.settings-title {
+    color: #e0e0e0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.done-settings-btn {
+    -webkit-app-region: no-drag;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    /* Colors set by accent CSS variables */
+}
+
+.done-settings-btn:hover {
+}
+
+.settings-disclaimer {
+    color: #c0c0d0;
+    font-size: 9px;
+    text-align: center;
+    padding: 5px 14px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+body.theme-light .settings-disclaimer {
+    color: #808090;
+}
+
+.settings-rows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 6px 14px;
+    gap: 10px;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.settings-row .settings-row-label {
+    width: 70px;
+    flex-shrink: 0;
+}
+
+/* Two-column toggle row */
+.settings-row-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.settings-col {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0 4px;
+}
+
+.settings-col .settings-row-label {
+    width: 90px;
+    flex-shrink: 0;
+}
+
+.settings-row-label {
+    color: #c0c0c0;
+    font-size: 11px;
+}
+
+/* Threshold inputs */
+.threshold-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.threshold-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: default;
+}
+
+.threshold-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.warning-dot {
+    background: #f59e0b;
+}
+
+.danger-dot {
+    background: #ef4444;
+}
+
+.threshold-input {
+    width: 38px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #e0e0e0;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 11px;
+    text-align: center;
+    -moz-appearance: textfield;
+}
+
+.threshold-input::-webkit-inner-spin-button,
+.threshold-input::-webkit-outer-spin-button {
+    opacity: 0.4;
+}
+
+.threshold-input:focus {
+    border-color: #8b5cf6;
+    outline: none;
+}
+
+.threshold-pct {
+    color: #707080;
+    font-size: 11px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    width: 34px;
+    height: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.12);
+    border-radius: 18px;
+    transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 13px;
+    height: 13px;
+    left: 2.5px;
+    top: 2.5px;
+    background: #909090;
+    border-radius: 50%;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s, box-shadow 0.25s;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(16px);
+}
+/* Toggle checked colors set by accent CSS variables */
+
+/* Theme Selector */
+.theme-selector {
+    display: flex;
+    gap: 4px;
+}
+
+.theme-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #808080;
+    font-size: 10px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-btn:hover {
+    color: #c0c0c0;
+    border-color: rgba(255,255,255,0.25);
+    transform: translateY(-1px);
+}
+
+.theme-btn:active {
+    transform: translateY(0);
+}
+
+/* .theme-btn.active colors set by accent CSS variables */
+
+/* Settings Footer */
+.settings-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-footer .settings-version-label {
+    flex: 1;
+    font-size: 11px;
+    color: #9090b0;
+}
+
+.settings-footer .coffee-btn {
+    flex-shrink: 0;
+}
+
+.logout-btn {
+    background: transparent;
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+}
+
+.logout-btn:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.6);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+}
+
+.logout-btn:active {
+    transform: scale(0.97);
+}
+
+.coffee-btn {
+    background: rgba(255, 193, 7, 0.12);
+    color: #fbbf24;
+    border: 1px solid rgba(255, 193, 7, 0.25);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+    flex: 1;
+    justify-content: center;
+}
+
+.coffee-btn svg {
+    display: block;
+    flex-shrink: 0;
+}
+
+.coffee-btn:hover {
+    background: rgba(255, 193, 7, 0.2);
+    border-color: rgba(255, 193, 7, 0.45);
+}
+
+.settings-btn {
+    font-size: 14px;
+}
+
+.footer {
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.last-update {
+    color: #666;
+    font-size: 11px;
+    display: block;
+    text-align: center;
+}
+
+/* Scrollbar (if needed) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Warning states */
+.progress-fill.warning {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.progress-fill.danger {
+    background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+}
+
+.timer-progress.warning {
+    stroke: #f59e0b;
+}
+
+.timer-progress.danger {
+    stroke: #ef4444;
+}
+
+/* Light Theme */
+body.theme-light .widget-container {
+    background: linear-gradient(145deg, #f5f5fc 0%, #ededf5 40%, #e6e6f0 100%);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .title-bar,
+body.theme-light .settings-header {
+    background: rgba(0, 0, 0, 0.06);
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .title,
+body.theme-light .settings-title {
+    color: #1a1a2e;
+}
+
+body.theme-light .usage-label {
+    color: #606080;
+}
+
+body.theme-light .usage-percentage,
+body.theme-light .timer-text {
+    color: #1a1a2e;
+}
+
+body.theme-light .progress-bar {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+body.theme-light .timer-bg {
+    stroke: rgba(0, 0, 0, 0.1);
+}
+
+body.theme-light .control-btn {
+    background: rgba(0, 0, 0, 0.06);
+    color: #505070;
+}
+
+body.theme-light .control-btn:hover {
+    background: rgba(0, 0, 0, 0.12);
+    color: #1a1a2e;
+}
+
+body.theme-light .settings-overlay {
+    background: linear-gradient(145deg, #f5f5fc 0%, #ededf5 40%, #e6e6f0 100%);
+    border-radius: 12px;
+}
+
+body.theme-light .settings-row-label {
+    color: #303050;
+}
+
+body.theme-light .settings-disclaimer {
+    color: #9090a0;
+}
+
+body.theme-light .theme-btn {
+    background: rgba(0,0,0,0.06);
+    border-color: rgba(0,0,0,0.12);
+    color: #606080;
+}
+
+body.theme-light .theme-btn.active {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.4);
+    color: #7c3aed;
+}
+
+body.theme-light .expand-section {
+    border-top-color: rgba(0,0,0,0.08);
+}
+
+body.theme-light .expand-arrow {
+    color: #909090;
+}
+
+/* ── Update Banner ─────────────────────────────────────────── */
+.update-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1a2a00;
+    padding: 4px 10px;
+    gap: 6px;
+    -webkit-app-region: no-drag;
+}
+
+.update-banner-text {
+    font-size: 11px;
+    color: #a8e063;
+    cursor: pointer;
+    flex: 1;
+    text-align: center;
+    font-family: inherit;
+}
+
+.update-banner-text:hover {
+    text-decoration: underline;
+}
+
+.update-banner-dismiss {
+    background: transparent;
+    border: none;
+    color: #a8e063;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0 2px;
+    line-height: 1;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.update-banner-dismiss:hover {
+    opacity: 1;
+}
+
+/* ── Settings version row ──────────────────────────────────── */
+.settings-version-label {
+    font-size: 11px;
+    color: #9090b0;
+    font-family: inherit;
+}
+
+.settings-update-link {
+    font-size: 11px;
+    color: #a8e063;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.settings-update-link:hover {
+    text-decoration: underline;
+}
+
+body.theme-light .update-banner {
+    background: #e8f5c8;
+}
+
+body.theme-light .update-banner-text,
+body.theme-light .update-banner-dismiss {
+    color: #4a7a00;
+}
+
+body.theme-light .settings-version-label {
+    color: #aaaacc;
+}
+
+body.theme-light .settings-update-link {
+    color: #4a7a00;
+}
+
+/* ── Settings select dropdowns ─────────────────────────────── */
+.settings-select {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: #e0e0f0;
+    font-size: 11px;
+    padding: 3px 6px;
+    cursor: pointer;
+    outline: none;
+    font-family: inherit;
+}
+
+.settings-select option {
+    background: #2a2a3e;
+    color: #e0e0f0;
+}
+
+.settings-select:hover {
+    border-color: rgba(255,255,255,0.3);
+}
+
+body.theme-light .settings-select {
+    background: rgba(0,0,0,0.05);
+    border-color: rgba(0,0,0,0.15);
+    color: #303050;
+}
+
+body.theme-light .settings-select option {
+    background: #ffffff;
+    color: #303050;
+}
+
+/* ── Opacity Slider ───────────────────────────────────────── */
+.opacity-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.opacity-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 80px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.opacity-slider:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.opacity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Colors set by accent CSS variables */
+}
+
+.opacity-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+.opacity-value {
+    color: #808090;
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    min-width: 28px;
+    text-align: right;
+}
+
+/* Light theme opacity slider */
+body.theme-light .opacity-slider {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+body.theme-light .opacity-slider:hover {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+body.theme-light .opacity-value {
+    color: #606080;
+}
+
+/* OLED theme opacity slider */
+body.theme-oled .opacity-slider {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* OLED slider thumb accent handled by vars */
+
+body.theme-oled .opacity-value {
+    color: #505060;
+}
+
+/* ── Accent Color Selector ────────────────────────────────── */
+.accent-selector {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.accent-btn {
+    width: 22px;
+    height: 22px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    background: none;
+    padding: 2px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.accent-btn span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: block;
+    transition: transform 0.2s;
+}
+
+.accent-btn:hover {
+    transform: scale(1.15);
+}
+
+.accent-btn:hover span {
+    transform: scale(1.1);
+}
+
+.accent-btn.active {
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+}
+
+body.theme-light .accent-btn.active {
+    border-color: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+body.theme-oled .accent-btn.active {
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.08);
+}
+
+/* ── Accent Color CSS Variables ──────────────────────────── */
+/* Session accent (--accent) is the primary UI accent color.
+   Weekly accent (--accent-w) is applied to .weekly elements.
+   Both are set by JS via inline styles on body + #weeklyRow. */
+:root {
+    --accent: #8b5cf6;
+    --accent-light: #a78bfa;
+    --accent-lighter: #c4b5fd;
+    --accent-dim: #6d4db8;
+    --accent-glow: rgba(139, 92, 246, 0.35);
+    --accent-w: #3b82f6;
+    --accent-w-light: #60a5fa;
+    --accent-w-lighter: #93c5fd;
+    --accent-w-dim: #2d6abf;
+    --accent-w-glow: rgba(59, 130, 246, 0.35);
+}
+
+/* Accent colors are now applied via JS inline vars on :root (applyAccentVars).
+   body[data-accent] selectors removed — no longer needed. */
+
+/* Apply accent vars to session progress bar */
+.progress-fill {
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-light) 60%, var(--accent-lighter) 100%);
+    box-shadow: 0 0 12px var(--accent-glow), 0 0 4px var(--accent-glow);
+}
+
+/* Weekly progress bar uses weekly accent */
+.progress-fill.weekly {
+    background: linear-gradient(90deg, var(--accent-w) 0%, var(--accent-w-light) 60%, var(--accent-w-lighter) 100%);
+    box-shadow: 0 0 12px var(--accent-w-glow), 0 0 4px var(--accent-w-glow);
+}
+
+/* Timer circle accent */
+.timer-progress {
+    stroke: var(--accent);
+    filter: drop-shadow(0 0 3px var(--accent-glow));
+}
+
+/* Weekly timer */
+.timer-progress.weekly {
+    stroke: var(--accent-w);
+    filter: drop-shadow(0 0 3px var(--accent-w-glow));
+}
+
+/* Spinner accent */
+.spinner {
+    border-top-color: var(--accent);
+}
+
+/* Login accent */
+.step-icon svg { color: var(--accent); }
+.auto-detect-btn,
+.connect-btn {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+}
+.session-key-header code {
+    background: rgba(139, 92, 246, 0.2);
+    color: var(--accent-light);
+}
+.session-key-input-row input:focus { border-color: var(--accent); }
+
+/* Toggle accent */
+.toggle-switch input:checked + .toggle-slider {
+    background: rgba(139, 92, 246, 0.45);
+    background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.toggle-switch input:checked + .toggle-slider::before {
+    background: var(--accent-light);
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* Theme btn accent */
+.theme-btn.active {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    color: var(--accent-light);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* Done btn accent */
+.done-settings-btn {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    color: var(--accent-light);
+}
+.done-settings-btn:hover {
+    background: color-mix(in srgb, var(--accent) 35%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+    color: var(--accent-lighter);
+}
+
+/* Graph btn accent */
+.graph-btn.active {
+    background: color-mix(in srgb, var(--accent) 28%, transparent);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* Compact bar accent */
+.compact-bar-fill {
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-light) 60%, var(--accent-lighter) 100%);
+}
+.compact-bar-fill.weekly {
+    background: linear-gradient(90deg, var(--accent-w) 0%, var(--accent-w-light) 60%, var(--accent-w-lighter) 100%);
+}
+
+/* Slider thumb accent */
+.opacity-slider::-webkit-slider-thumb {
+    background: var(--accent-light);
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+    box-shadow: 0 0 6px var(--accent-glow);
+}
+.opacity-slider::-webkit-slider-thumb:hover {
+    background: var(--accent-lighter);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* No usage icon accent */
+.no-usage-content svg { color: var(--accent); }
+
+/* Threshold input focus accent */
+.threshold-input:focus { border-color: var(--accent); }
+
+/* Glass mode glow uses accent */
+body.glass-mode .progress-fill {
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* OLED accent overrides — dimmed versions */
+body.theme-oled .progress-fill {
+    background: linear-gradient(90deg, var(--accent-dim) 0%, var(--accent) 100%);
+    box-shadow: none;
+}
+body.theme-oled .progress-fill.weekly {
+    background: linear-gradient(90deg, var(--accent-w-dim) 0%, var(--accent-w) 100%);
+    box-shadow: none;
+}
+body.theme-oled .timer-progress {
+    stroke: var(--accent-dim);
+}
+body.theme-oled .timer-progress.weekly {
+    stroke: var(--accent-w-dim);
+}
+body.theme-oled .compact-bar-fill {
+    background: linear-gradient(90deg, var(--accent-dim) 0%, var(--accent) 100%);
+}
+body.theme-oled .compact-bar-fill.weekly {
+    background: linear-gradient(90deg, var(--accent-w-dim) 0%, var(--accent-w) 100%);
+}
+
+/* ── Glass hover opacity variable ────────────────────────── */
+:root {
+    --glass-hover-opacity: 0.6;
+}
+/* Glass hover rules consolidated in the Glass Mode section below */
+
+/* ── Column Visibility ────────────────────────────────────── */
+/* Hiding columns via body classes — collapses the grid column */
+body.hide-elapsed .col-elapsed { display: none; }
+body.hide-resets-in .col-resets-in { display: none; }
+body.hide-resets-at .col-resets-at { display: none; }
+
+/* Adjust grid when columns are hidden */
+body.hide-elapsed .usage-section,
+body.hide-elapsed .usage-headers {
+    grid-template-columns: 115px minmax(0, 1fr) 0px 72px 68px;
+}
+body.hide-resets-in .usage-section,
+body.hide-resets-in .usage-headers {
+    grid-template-columns: 115px minmax(0, 1fr) 36px 0px 68px;
+}
+body.hide-resets-at .usage-section,
+body.hide-resets-at .usage-headers {
+    grid-template-columns: 115px minmax(0, 1fr) 36px 72px 0px;
+}
+/* Two hidden */
+body.hide-elapsed.hide-resets-in .usage-section,
+body.hide-elapsed.hide-resets-in .usage-headers {
+    grid-template-columns: 115px minmax(0, 1fr) 0px 0px 68px;
+}
+body.hide-elapsed.hide-resets-at .usage-section,
+body.hide-elapsed.hide-resets-at .usage-headers {
+    grid-template-columns: 115px minmax(0, 1fr) 0px 72px 0px;
+}
+body.hide-resets-in.hide-resets-at .usage-section,
+body.hide-resets-in.hide-resets-at .usage-headers {
+    grid-template-columns: 115px minmax(0, 1fr) 36px 0px 0px;
+}
+/* All three hidden */
+body.hide-elapsed.hide-resets-in.hide-resets-at .usage-section,
+body.hide-elapsed.hide-resets-in.hide-resets-at .usage-headers {
+    grid-template-columns: 115px minmax(0, 1fr) 0px 0px 0px;
+}
+
+/* ── Column Toggle Controls (settings) ───────────────────── */
+.column-toggles {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.col-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    font-size: 9px;
+    color: #808090;
+    white-space: nowrap;
+}
+
+.col-toggle-label input {
+    width: 12px;
+    height: 12px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.col-toggle-label span {
+    user-select: none;
+}
+
+body.theme-light .col-toggle-label {
+    color: #606080;
+}
+
+/* ── Claude Logo (next to Current Session label) ─────────── */
+.claude-logo {
+    margin-right: 4px;
+    vertical-align: -2px;
+    opacity: 0.6;
+    color: #e0e0e0;
+    flex-shrink: 0;
+}
+
+body.theme-light .claude-logo {
+    color: #303050;
+    opacity: 0.5;
+}
+
+body.theme-oled .claude-logo {
+    color: #a0a0a0;
+    opacity: 0.4;
+}
+
+/* In glass mode, logo stays visible */
+body.glass-mode .claude-logo {
+    opacity: 0.5;
+}
+
+/* ── Pixel shift toggle (controlled by class, not just theme) ── */
+@keyframes pixel-shift-active {
+    0%   { transform: translate(0px, 0px); }
+    15%  { transform: translate(1px, 0px); }
+    35%  { transform: translate(2px, 1px); }
+    50%  { transform: translate(1px, 2px); }
+    65%  { transform: translate(0px, 1px); }
+    80%  { transform: translate(-1px, 0px); }
+    100% { transform: translate(0px, 0px); }
+}
+
+/* Pixel shift animates inner content only — animating .widget-container
+   breaks Electron's -webkit-app-region: drag on the title bar. */
+body.pixel-shift .content,
+body.pixel-shift .compact-content {
+    animation: pixel-shift-active 200s linear infinite;
+}
+
+body.pixel-shift .graph-section {
+    animation: glass-drift 260s linear infinite;
+}
+
+/* ── Compact Mode ──────────────────────────────────────────── */
+
+/* Collapse chevron — fixed position in content area, does not move when rows expand */
+.compact-collapse-btn {
+    position: absolute;
+    left: 2px;
+    top: 40px;  /* fixed offset within .content: centers on the two main rows */
+    width: 18px;
+    height: 36px;
+    background: none;
+    border: none;
+    color: #505050;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+    padding: 0;
+    z-index: 5;
+}
+
+.compact-collapse-btn:hover {
+    color: #a0a0a0;
+}
+
+/* Compact content container */
+.compact-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 6px 22px;
+    flex: 1;
+}
+
+/* Expand chevron — right edge of compact view */
+.compact-expand-btn {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 36px;
+    background: none;
+    border: none;
+    color: #505050;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+    padding: 0;
+    z-index: 5;
+}
+
+.compact-expand-btn:hover {
+    color: #a0a0a0;
+}
+
+/* Compact rows */
+.compact-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    width: 100%;
+}
+
+.compact-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.compact-label {
+    color: #808090;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    width: 50px;
+    flex-shrink: 0;
+}
+
+.compact-bar-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.compact-bar-bg {
+    position: relative;
+    height: 14px;
+    width: 100%;
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.compact-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Colors set by accent CSS variables */
+}
+
+/* .compact-bar-fill.weekly colors set by accent vars */
+
+.compact-bar-fill.warning {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.compact-bar-fill.danger {
+    background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+}
+
+.compact-pct {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 9px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 4px rgba(0,0,0,0.6);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* Compact settings overlay body */
+.compact-settings-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+}
+
+.compact-settings-body .settings-col {
+    gap: 12px;
+}
+
+/* Light theme compact */
+body.theme-light .compact-collapse-btn,
+body.theme-light .compact-expand-btn {
+    color: #b0b0c0;
+}
+
+body.theme-light .compact-collapse-btn:hover,
+body.theme-light .compact-expand-btn:hover {
+    color: #606080;
+}
+
+body.theme-light .compact-label {
+    color: #606080;
+}
+
+body.theme-light .compact-bar-bg {
+    background: rgba(0,0,0,0.08);
+}
+
+body.theme-light .compact-pct {
+    color: rgba(0,0,0,0.75);
+    text-shadow: none;
+}
+
+/* Pulse animation when usage hits 100% */
+@keyframes pulse-danger {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.35; }
+    100% { opacity: 1; }
+}
+
+.progress-fill.pulse {
+    animation: pulse-danger 1.2s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   OLED Theme — pure blacks, dimmed UI, burn-in prevention
+   ══════════════════════════════════════════════════════════════ */
+
+body.theme-oled .widget-container {
+    background: #000000;
+    border-color: rgba(255, 255, 255, 0.04);
+}
+
+body.theme-oled .title-bar,
+body.theme-oled .settings-header {
+    background: #000000;
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+body.theme-oled .title,
+body.theme-oled .settings-title {
+    color: #b0b0b0;
+}
+
+body.theme-oled .usage-label {
+    color: #707080;
+}
+
+body.theme-oled .usage-percentage,
+body.theme-oled .timer-text {
+    color: #c0c0c0;
+}
+
+body.theme-oled .progress-bar {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+body.theme-oled .timer-bg {
+    stroke: rgba(255, 255, 255, 0.06);
+}
+
+body.theme-oled .control-btn {
+    background: rgba(255, 255, 255, 0.03);
+    color: #606060;
+}
+
+body.theme-oled .control-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #a0a0a0;
+}
+
+body.theme-oled .settings-overlay {
+    background: #000000;
+}
+
+body.theme-oled .settings-row-label {
+    color: #909090;
+}
+
+body.theme-oled .settings-disclaimer {
+    color: #606070;
+    border-bottom-color: rgba(255, 255, 255, 0.03);
+}
+
+body.theme-oled .theme-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #606060;
+}
+
+body.theme-oled .theme-btn:hover {
+    color: #909090;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* OLED theme-btn.active accent handled by vars */
+
+body.theme-oled .expand-section {
+    border-top-color: rgba(255, 255, 255, 0.04);
+}
+
+body.theme-oled .expand-arrow {
+    color: #404040;
+}
+
+body.theme-oled .expand-toggle:hover .expand-arrow {
+    color: #707070;
+}
+
+body.theme-oled .col-header {
+    color: #404050;
+}
+
+body.theme-oled .resets-at-text {
+    color: #707080;
+}
+
+body.theme-oled .loading-container {
+    color: #606060;
+}
+
+body.theme-oled .spinner {
+    border-color: rgba(255, 255, 255, 0.04);
+    /* border-top-color from accent vars */
+}
+
+/* OLED: semantic color overrides (extra/opus/warning/danger keep their own colors) */
+/* .weekly is handled by --accent-w vars */
+
+body.theme-oled .progress-fill.extra {
+    background: linear-gradient(90deg, #0d9668 0%, #1aad80 100%);
+    box-shadow: none;
+}
+
+body.theme-oled .progress-fill.opus {
+    background: linear-gradient(90deg, #c08008 0%, #d09518 100%);
+    box-shadow: none;
+}
+
+body.theme-oled .progress-fill.warning {
+    background: linear-gradient(90deg, #c08008 0%, #d09518 100%);
+    box-shadow: none;
+}
+
+body.theme-oled .progress-fill.danger {
+    background: linear-gradient(90deg, #c03030 0%, #d04848 100%);
+    box-shadow: none;
+}
+
+/* .timer-progress.weekly handled by --accent-w vars */
+
+body.theme-oled .timer-progress.extra {
+    stroke: #0d9668;
+}
+
+body.theme-oled .timer-progress.opus {
+    stroke: #c08008;
+}
+
+body.theme-oled .timer-progress.warning {
+    stroke: #c08008;
+}
+
+body.theme-oled .timer-progress.danger {
+    stroke: #c03030;
+}
+
+/* OLED: login */
+body.theme-oled .step-text h3 {
+    color: #b0b0b0;
+}
+
+body.theme-oled .step-text p {
+    color: #707070;
+}
+
+/* OLED login accent colors handled by accent CSS variables */
+
+body.theme-oled .next-step-btn {
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #606060;
+}
+
+body.theme-oled .session-key-input-row input {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #b0b0b0;
+}
+
+body.theme-oled .session-key-header h3 {
+    color: #b0b0b0;
+}
+
+/* OLED code accent handled by vars */
+
+/* OLED: settings elements */
+body.theme-oled .toggle-slider {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+body.theme-oled .toggle-slider::before {
+    background: #606060;
+}
+
+/* OLED toggle accent handled by vars */
+
+body.theme-oled .settings-select {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #a0a0a0;
+}
+
+body.theme-oled .settings-select option {
+    background: #0a0a0a;
+    color: #a0a0a0;
+}
+
+body.theme-oled .threshold-input {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #a0a0a0;
+}
+
+/* OLED done-settings-btn accent handled by vars */
+
+body.theme-oled .logout-btn {
+    color: #c03030;
+    border-color: rgba(192, 48, 48, 0.35);
+}
+
+body.theme-oled .logout-btn:hover {
+    background: rgba(192, 48, 48, 0.1);
+    border-color: rgba(192, 48, 48, 0.5);
+}
+
+body.theme-oled .coffee-btn {
+    background: rgba(200, 150, 0, 0.08);
+    color: #c89800;
+    border-color: rgba(200, 150, 0, 0.15);
+}
+
+body.theme-oled .coffee-btn:hover {
+    background: rgba(200, 150, 0, 0.15);
+    border-color: rgba(200, 150, 0, 0.3);
+}
+
+body.theme-oled .settings-version-label {
+    color: #505060;
+}
+
+body.theme-oled .settings-footer {
+    border-top-color: rgba(255, 255, 255, 0.04);
+}
+
+/* OLED: graph */
+body.theme-oled .graph-section {
+    border-top-color: rgba(255, 255, 255, 0.04);
+}
+
+/* OLED graph-btn.active accent handled by vars */
+
+/* OLED: update banner */
+body.theme-oled .update-banner {
+    background: #050a00;
+}
+
+body.theme-oled .update-banner-text,
+body.theme-oled .update-banner-dismiss {
+    color: #7aad40;
+}
+
+body.theme-oled .settings-update-link {
+    color: #7aad40;
+}
+
+/* OLED: compact mode */
+body.theme-oled .compact-collapse-btn,
+body.theme-oled .compact-expand-btn {
+    color: #353535;
+}
+
+body.theme-oled .compact-collapse-btn:hover,
+body.theme-oled .compact-expand-btn:hover {
+    color: #606060;
+}
+
+body.theme-oled .compact-label {
+    color: #505060;
+}
+
+body.theme-oled .compact-bar-bg {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* OLED compact-bar-fill: .weekly handled by --accent-w vars; semantic colors keep own values */
+
+body.theme-oled .compact-bar-fill.warning {
+    background: linear-gradient(90deg, #c08008 0%, #d09518 100%);
+}
+
+body.theme-oled .compact-bar-fill.danger {
+    background: linear-gradient(90deg, #c03030 0%, #d04848 100%);
+}
+
+body.theme-oled .compact-pct {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* OLED: no usage */
+body.theme-oled .no-usage-content svg {
+    color: #6d4db8;
+}
+
+body.theme-oled .no-usage-content h3 {
+    color: #b0b0b0;
+}
+
+body.theme-oled .no-usage-content p {
+    color: #606060;
+}
+
+/* OLED: extra status badges */
+body.theme-oled .extra-status.on {
+    background: rgba(26, 173, 128, 0.1);
+    color: #1aad80;
+    border-color: rgba(26, 173, 128, 0.25);
+}
+
+body.theme-oled .extra-status.off {
+    background: rgba(128, 128, 128, 0.06);
+    color: #505050;
+    border-color: rgba(128, 128, 128, 0.15);
+}
+
+/* OLED: scrollbar */
+body.theme-oled ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+body.theme-oled ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── OLED Burn-in Prevention ──────────────────────────────────
+   Pixel shift is now controlled by Settings toggle (body.pixel-shift).
+   OLED theme auto-enables it on first use. See accent color section
+   for the keyframes (pixel-shift-active, glass-drift).
+   ───────────────────────────────────────────────────────────── */
+
+/* Dim static text elements further to reduce burn risk */
+body.theme-oled .col-header {
+    opacity: 0.6;
+}
+
+body.theme-oled .usage-label {
+    opacity: 0.85;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GLASS MODE — transparent chrome, only data elements visible.
+   Title bar appears on hover. Designed for "always-on-top"
+   overlay use where the widget floats over other windows.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Container: strip background, border, shadow */
+body.glass-mode .widget-container {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* ── Title bar: hidden until hover ─────────────────────────── */
+body.glass-mode .title-bar {
+    background: transparent;
+    border-bottom-color: transparent;
+    opacity: 0;
+    transition: opacity 0.3s ease, background 0.3s ease;
+    pointer-events: none;
+}
+
+body.glass-mode .widget-container:hover .title-bar {
+    opacity: var(--glass-hover-opacity);
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+body.glass-mode.theme-light .widget-container:hover .title-bar {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+}
+
+body.glass-mode.theme-oled .widget-container:hover .title-bar {
+    background: rgba(0, 0, 0, 0.85);
+}
+
+/* Title text dimmed in glass */
+body.glass-mode .title {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+body.glass-mode.theme-light .title {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+/* ── Column headers: hidden ────────────────────────────────── */
+body.glass-mode .usage-headers {
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    transition: opacity 0.3s ease;
+}
+
+body.glass-mode .widget-container:hover .usage-headers {
+    opacity: var(--glass-hover-opacity);
+    height: auto;
+    margin-bottom: 2px;
+    padding: 0 16px 0 12px;
+}
+
+/* ── Usage labels: fade in on hover ────────────────────────── */
+body.glass-mode .usage-label {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+body.glass-mode .widget-container:hover .usage-label {
+    opacity: var(--glass-hover-opacity);
+}
+
+/* ── Resets-at text: hidden until hover ────────────────────── */
+body.glass-mode .resets-at-text {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+body.glass-mode .widget-container:hover .resets-at-text {
+    opacity: calc(var(--glass-hover-opacity) * 0.85);
+}
+
+/* ── Progress bars: ALWAYS visible, slight glow ────────────── */
+body.glass-mode .progress-bar {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+body.glass-mode .progress-fill {
+    box-shadow: 0 0 10px var(--accent-glow), 0 0 4px var(--accent-glow);
+}
+
+body.glass-mode .progress-fill.weekly {
+    box-shadow: 0 0 10px var(--accent-w-glow), 0 0 4px var(--accent-w-glow);
+}
+
+body.glass-mode .progress-fill.extra {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+body.glass-mode .progress-fill.warning {
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+body.glass-mode .progress-fill.danger {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+/* ── Percentages: ALWAYS visible ───────────────────────────── */
+body.glass-mode .usage-percentage {
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+body.glass-mode.theme-light .usage-percentage {
+    text-shadow: 0 1px 4px rgba(255, 255, 255, 0.7);
+}
+
+/* ── Timer circles + text: ALWAYS visible ──────────────────── */
+body.glass-mode .timer-text {
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+body.glass-mode.theme-light .timer-text {
+    text-shadow: 0 1px 4px rgba(255, 255, 255, 0.7);
+}
+
+/* ── Expand toggle: dimmed, visible on hover ───────────────── */
+body.glass-mode .expand-toggle {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+body.glass-mode .widget-container:hover .expand-toggle {
+    opacity: calc(var(--glass-hover-opacity) * 0.7);
+}
+
+body.glass-mode .expand-section {
+    border-top-color: transparent;
+}
+
+/* ── Graph section: ALWAYS visible, transparent border ─────── */
+body.glass-mode .graph-section {
+    border-top-color: rgba(255, 255, 255, 0.04);
+}
+
+/* ── Update banner: transparent background ─────────────────── */
+body.glass-mode .update-banner {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+/* ── Settings overlay: NOT affected by glass (stays solid) ─── */
+body.glass-mode .settings-overlay {
+    background: linear-gradient(145deg, #191926 0%, #1e1e30 40%, #252540 100%) !important;
+}
+
+body.glass-mode.theme-light .settings-overlay {
+    background: linear-gradient(145deg, #f5f5fc 0%, #ededf5 40%, #e6e6f0 100%) !important;
+}
+
+body.glass-mode.theme-oled .settings-overlay {
+    background: #000000 !important;
+}
+
+/* ── Compact mode glass ────────────────────────────────────── */
+body.glass-mode .compact-content {
+    background: transparent;
+}
+
+body.glass-mode .compact-bar-bg {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.glass-mode .compact-label {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+body.glass-mode .widget-container:hover .compact-label {
+    opacity: calc(var(--glass-hover-opacity) * 0.8);
+}
+
+body.glass-mode .compact-collapse-btn,
+body.glass-mode .compact-expand-btn {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+body.glass-mode .widget-container:hover .compact-collapse-btn,
+body.glass-mode .widget-container:hover .compact-expand-btn {
+    opacity: calc(var(--glass-hover-opacity) * 0.6);
+}
+
+/* Glass mode drift is now unified with pixel-shift toggle.
+   See "Pixel shift toggle" section for keyframes.
+   When glass mode AND pixel-shift are both on, content drifts. */

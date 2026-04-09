@@ -1,0 +1,1662 @@
+// Application state
+let credentials = null;
+let updateInterval = null;
+let countdownInterval = null;
+let latestUsageData = null;
+let isExpanded = false;
+let isCompactMode = false;
+let usageChart = null;
+let graphVisible = false;
+let graphWasVisible = false; // preserves graph state across compact mode toggle
+let appInitializing = true;  // suppresses _saveViewState during startup restore
+let isFetching = false;       // in-flight guard — prevents overlapping fetchUsageData calls
+let isGlassMode = false;      // glass mode — transparent chrome, data-only overlay
+const UPDATE_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const WIDGET_HEIGHT_COLLAPSED = 155;
+const WIDGET_ROW_HEIGHT = 30;
+const GRAPH_HEIGHT = 232;
+
+// Debug logging — only shows in DevTools (development mode).
+// Regular users won't see verbose logs in production.
+const DEBUG = (new URLSearchParams(window.location.search)).has('debug');
+function debugLog(...args) {
+  if (DEBUG) console.log('[Debug]', ...args);
+}
+
+// DOM elements
+const elements = {
+    loadingContainer: document.getElementById('loadingContainer'),
+    loginContainer: document.getElementById('loginContainer'),
+    noUsageContainer: document.getElementById('noUsageContainer'),
+    mainContent: document.getElementById('mainContent'),
+    loginStep1: document.getElementById('loginStep1'),
+    loginStep2: document.getElementById('loginStep2'),
+    autoDetectBtn: document.getElementById('autoDetectBtn'),
+    autoDetectError: document.getElementById('autoDetectError'),
+    openBrowserLink: document.getElementById('openBrowserLink'),
+    nextStepBtn: document.getElementById('nextStepBtn'),
+    backStepBtn: document.getElementById('backStepBtn'),
+    sessionKeyInput: document.getElementById('sessionKeyInput'),
+    connectBtn: document.getElementById('connectBtn'),
+    sessionKeyError: document.getElementById('sessionKeyError'),
+    refreshBtn: document.getElementById('refreshBtn'),
+    graphBtn: document.getElementById('graphBtn'),
+    minimizeBtn: document.getElementById('minimizeBtn'),
+    closeBtn: document.getElementById('closeBtn'),
+
+    sessionPercentage: document.getElementById('sessionPercentage'),
+    sessionProgress: document.getElementById('sessionProgress'),
+    sessionTimer: document.getElementById('sessionTimer'),
+    sessionTimeText: document.getElementById('sessionTimeText'),
+
+    weeklyPercentage: document.getElementById('weeklyPercentage'),
+    weeklyProgress: document.getElementById('weeklyProgress'),
+    weeklyTimer: document.getElementById('weeklyTimer'),
+    weeklyTimeText: document.getElementById('weeklyTimeText'),
+    weeklyResetsAt: document.getElementById('weeklyResetsAt'),
+
+    sessionResetsAt: document.getElementById('sessionResetsAt'),
+
+    expandToggle: document.getElementById('expandToggle'),
+    expandArrow: document.getElementById('expandArrow'),
+    expandSection: document.getElementById('expandSection'),
+    extraRows: document.getElementById('extraRows'),
+    graphSection: document.getElementById('graphSection'),
+    usageChart: document.getElementById('usageChart'),
+
+    settingsBtn: document.getElementById('settingsBtn'),
+    settingsOverlay: document.getElementById('settingsOverlay'),
+    closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+    logoutBtn: document.getElementById('logoutBtn'),
+    coffeeBtn: document.getElementById('coffeeBtn'),
+    autoStartToggle: document.getElementById('autoStartToggle'),
+    minimizeToTrayToggle: document.getElementById('minimizeToTrayToggle'),
+    alwaysOnTopToggle: document.getElementById('alwaysOnTopToggle'),
+    warnThreshold: document.getElementById('warnThreshold'),
+    dangerThreshold: document.getElementById('dangerThreshold'),
+    themeBtns: document.querySelectorAll('.theme-btn'),
+    timeFormat: document.getElementById('timeFormat'),
+    weeklyDateFormat: document.getElementById('weeklyDateFormat'),
+    refreshInterval: document.getElementById('refreshInterval'),
+
+    updateBanner: document.getElementById('updateBanner'),
+    updateBannerText: document.getElementById('updateBannerText'),
+    updateBannerDismiss: document.getElementById('updateBannerDismiss'),
+    settingsVersionLabel: document.getElementById('settingsVersionLabel'),
+    settingsUpdateLink: document.getElementById('settingsUpdateLink'),
+    usageAlertsToggle: document.getElementById('usageAlertsToggle'),
+    compactModeToggle: document.getElementById('compactModeToggle'),
+    compactModeToggleCompact: document.getElementById('compactModeToggleCompact'),
+    compactContent: document.getElementById('compactContent'),
+    compactCollapseBtn: document.getElementById('compactCollapseBtn'),
+    compactExpandBtn: document.getElementById('compactExpandBtn'),
+    compactSessionFill: document.getElementById('compactSessionFill'),
+    compactSessionPct: document.getElementById('compactSessionPct'),
+    compactWeeklyFill: document.getElementById('compactWeeklyFill'),
+    compactWeeklyPct: document.getElementById('compactWeeklyPct'),
+    compactSettingsOverlay: document.getElementById('compactSettingsOverlay'),
+    closeCompactSettingsBtn: document.getElementById('closeCompactSettingsBtn'),
+    opacitySlider: document.getElementById('opacitySlider'),
+    opacityValue: document.getElementById('opacityValue'),
+    glassModeToggle: document.getElementById('glassModeToggle'),
+    pixelShiftToggle: document.getElementById('pixelShiftToggle'),
+    glassHoverSlider: document.getElementById('glassHoverSlider'),
+    glassHoverValue: document.getElementById('glassHoverValue'),
+    sessionAccentBtns: document.querySelectorAll('.accent-btn.session-accent'),
+    weeklyAccentBtns: document.querySelectorAll('.accent-btn.weekly-accent'),
+    showSessionToggle: document.getElementById('showSessionToggle'),
+    showWeeklyToggle: document.getElementById('showWeeklyToggle'),
+    showElapsedToggle: document.getElementById('showElapsedToggle'),
+    showResetsInToggle: document.getElementById('showResetsInToggle'),
+    showResetsAtToggle: document.getElementById('showResetsAtToggle'),
+    showLogoToggle: document.getElementById('showLogoToggle'),
+    claudeLogo: document.getElementById('claudeLogo'),
+    sessionRow: document.getElementById('sessionRow'),
+    weeklyRow: document.getElementById('weeklyRow')
+};
+
+// Accent color palette — maps name to CSS variable values
+const ACCENT_COLORS = {
+    purple:  { c: '#8b5cf6', l: '#a78bfa', ll: '#c4b5fd', d: '#6d4db8', g: 'rgba(139,92,246,0.35)' },
+    blue:    { c: '#3b82f6', l: '#60a5fa', ll: '#93c5fd', d: '#2d6abf', g: 'rgba(59,130,246,0.35)' },
+    cyan:    { c: '#06b6d4', l: '#22d3ee', ll: '#67e8f9', d: '#0891b2', g: 'rgba(6,182,212,0.35)' },
+    green:   { c: '#10b981', l: '#34d399', ll: '#6ee7b7', d: '#0d9668', g: 'rgba(16,185,129,0.35)' },
+    orange:  { c: '#f59e0b', l: '#fbbf24', ll: '#fcd34d', d: '#c08008', g: 'rgba(245,158,11,0.35)' },
+    red:     { c: '#ef4444', l: '#f87171', ll: '#fca5a5', d: '#c03030', g: 'rgba(239,68,68,0.35)' },
+    pink:    { c: '#ec4899', l: '#f472b6', ll: '#f9a8d4', d: '#be185d', g: 'rgba(236,72,153,0.35)' }
+};
+
+function applyAccentVars(name, prefix) {
+    const a = ACCENT_COLORS[name] || ACCENT_COLORS.purple;
+    const p = prefix || '';
+    const root = document.documentElement;
+    root.style.setProperty(`--accent${p}`, a.c);
+    root.style.setProperty(`--accent${p}-light`, a.l);
+    root.style.setProperty(`--accent${p}-lighter`, a.ll);
+    root.style.setProperty(`--accent${p}-dim`, a.d);
+    root.style.setProperty(`--accent${p}-glow`, a.g);
+}
+
+// Initialize
+async function init() {
+    setupEventListeners();
+    credentials = await window.electronAPI.getCredentials();
+
+    // Apply saved theme and load thresholds immediately
+    const settings = await window.electronAPI.getSettings();
+    window._cachedSettings = settings;
+    applyTheme(settings.theme);
+    if (window.electronAPI.platform === 'darwin') {
+        document.getElementById('trayLabel').textContent = 'Hide from Dock';
+    }
+    warnThreshold = settings.warnThreshold;
+    dangerThreshold = settings.dangerThreshold;
+
+    // Restore compact mode from saved settings
+    if (settings.compactMode) {
+        applyCompactMode(true);
+    } else {
+        // Ensure compact overlay is hidden in normal mode
+        if (elements.compactSettingsOverlay) elements.compactSettingsOverlay.style.display = 'none';
+    }
+
+    // Restore glass mode
+    if (settings.glassMode) {
+        isGlassMode = true;
+        document.body.classList.add('glass-mode');
+    }
+
+    // Restore pixel shift
+    if (settings.pixelShift) {
+        document.body.classList.add('pixel-shift');
+    }
+
+    // Restore accent colors
+    applyAccentVars(settings.sessionAccent || 'purple', '');
+    applyAccentVars(settings.weeklyAccent || 'blue', '-w');
+
+    // Restore column visibility
+    if (settings.showElapsed === false) document.body.classList.add('hide-elapsed');
+    if (settings.showResetsIn === false) document.body.classList.add('hide-resets-in');
+    if (settings.showResetsAt === false) document.body.classList.add('hide-resets-at');
+
+    // Restore logo
+    if (settings.showLogo && elements.claudeLogo) {
+        elements.claudeLogo.style.display = '';
+    }
+
+    // Restore row visibility
+    if (settings.showSession === false && elements.sessionRow) {
+        elements.sessionRow.style.display = 'none';
+    }
+    if (settings.showWeekly === false && elements.weeklyRow) {
+        elements.weeklyRow.style.display = 'none';
+    }
+
+    // Restore glass hover opacity
+    if (settings.glassHoverOpacity != null) {
+        document.documentElement.style.setProperty('--glass-hover-opacity', settings.glassHoverOpacity / 100);
+    }
+
+    // Restore graph visibility
+    if (settings.graphVisible) {
+        if (!settings.compactMode) {
+            // Normal mode — show graph immediately
+            graphVisible = true;
+            elements.graphBtn.classList.add('active');
+            elements.graphSection.style.display = 'block';
+        } else {
+            // Compact mode — store so it restores when exiting compact
+            graphWasVisible = true;
+        }
+    }
+
+    // Restore expanded state
+    if (settings.expandedOpen) {
+        isExpanded = true;
+        elements.expandArrow.classList.add('expanded');
+        elements.expandSection.style.display = 'block';
+    }
+
+    if (credentials.sessionKey && credentials.organizationId) {
+        showMainContent();
+        await fetchUsageData();
+        startAutoUpdate();
+    } else {
+        showLoginRequired();
+    }
+
+    // Populate version label then check for updates after a short delay
+    const version = await window.electronAPI.getAppVersion();
+    if (elements.settingsVersionLabel) {
+        elements.settingsVersionLabel.textContent = `Application Version: v${version}`;
+    }
+    setTimeout(checkForUpdate, 2000);
+    // Also check once every 24 hours for users who never close the app
+    setInterval(checkForUpdate, 24 * 60 * 60 * 1000);
+
+    // Startup restore complete — allow _saveViewState to persist changes
+    appInitializing = false;
+}
+
+// Event Listeners
+function setupEventListeners() {
+    // Step 1: Login via BrowserWindow
+    elements.autoDetectBtn.addEventListener('click', handleAutoDetect);
+
+    // Step navigation
+    elements.nextStepBtn.addEventListener('click', () => {
+        elements.loginStep1.style.display = 'none';
+        elements.loginStep2.style.display = 'block';
+        elements.sessionKeyInput.focus();
+    });
+
+    elements.backStepBtn.addEventListener('click', () => {
+        elements.loginStep2.style.display = 'none';
+        elements.loginStep1.style.display = 'flex';
+        elements.sessionKeyError.textContent = '';
+    });
+
+    // Open browser link in step 2
+    elements.openBrowserLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.electronAPI.openExternal('https://claude.ai');
+    });
+
+    // Step 2: Manual sessionKey connect
+    elements.connectBtn.addEventListener('click', handleConnect);
+    elements.sessionKeyInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleConnect();
+        elements.sessionKeyError.textContent = '';
+    });
+
+    elements.refreshBtn.addEventListener('click', async () => {
+        debugLog('Refresh button clicked');
+        elements.refreshBtn.classList.add('spinning');
+        await fetchUsageData();
+        elements.refreshBtn.classList.remove('spinning');
+    });
+
+    elements.graphBtn.addEventListener('click', async () => {
+        graphVisible = !graphVisible;
+        elements.graphBtn.classList.toggle('active', graphVisible);
+        elements.graphSection.style.display = graphVisible ? 'block' : 'none';
+        if (graphVisible) {
+            await loadChart();
+        }
+        if (!isCompactMode) resizeWidget();
+        _saveViewState();
+    });
+
+    elements.minimizeBtn.addEventListener('click', () => {
+        window.electronAPI.minimizeWindow();
+    });
+
+    elements.closeBtn.addEventListener('click', () => {
+        window.electronAPI.closeWindow();
+    });
+
+    // Expand/collapse toggle
+    elements.expandToggle.addEventListener('click', () => {
+        isExpanded = !isExpanded;
+        elements.expandArrow.classList.toggle('expanded', isExpanded);
+        elements.expandSection.style.display = isExpanded ? 'block' : 'none';
+        if (graphVisible) {
+            loadChart();
+        }
+        resizeWidget();
+        _saveViewState();
+    });
+
+    // Settings close
+    elements.closeSettingsBtn.addEventListener('click', async () => {
+        await saveSettings();
+        elements.settingsOverlay.style.display = 'none';
+        if (!isCompactMode) resizeWidget();
+        startAutoUpdate();
+    });
+
+    elements.logoutBtn.addEventListener('click', async () => {
+        await window.electronAPI.deleteCredentials();
+        credentials = { sessionKey: null, organizationId: null };
+        elements.settingsOverlay.style.display = 'none';
+        showLoginRequired();
+    });
+
+    elements.coffeeBtn.addEventListener('click', () => {
+        // Original project by Slavomir Durej — see CREDITS.md
+        window.electronAPI.openExternal('https://github.com/SlavomirDurej/claude-usage-widget');
+    });
+
+    // Theme buttons
+    elements.themeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            elements.themeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            applyTheme(btn.dataset.theme);
+        });
+    });
+
+    // Listen for refresh requests from tray
+    window.electronAPI.onRefreshUsage(async () => {
+        if (elements.refreshBtn) elements.refreshBtn.classList.add('spinning');
+        await fetchUsageData();
+        if (elements.refreshBtn) elements.refreshBtn.classList.remove('spinning');
+    });
+
+    // Listen for session expiration events (403 errors)
+    window.electronAPI.onSessionExpired(() => {
+        debugLog('Session expired event received');
+        credentials = { sessionKey: null, organizationId: null };
+        showLoginRequired();
+    });
+
+    // Update banner
+    elements.updateBannerDismiss.addEventListener('click', () => {
+        elements.updateBanner.style.display = 'none';
+        resizeWidget();
+    });
+    elements.updateBannerText.addEventListener('click', () => {
+        // Update check disabled in standalone fork
+    });
+    elements.settingsUpdateLink.addEventListener('click', () => {
+        // Update check disabled in standalone fork
+    });
+
+    // Compact mode — collapse chevron (normal → compact)
+    elements.compactCollapseBtn.addEventListener('click', async () => {
+        applyCompactMode(true);
+        await _saveCompactSetting(true);
+    });
+
+    // Compact mode — expand chevron (compact → normal)
+    elements.compactExpandBtn.addEventListener('click', async () => {
+        applyCompactMode(false);
+        await _saveCompactSetting(false);
+    });
+
+    // Opacity slider — live preview as user drags
+    if (elements.opacitySlider) {
+        elements.opacitySlider.addEventListener('input', () => {
+            const val = parseInt(elements.opacitySlider.value);
+            elements.opacityValue.textContent = val + '%';
+            window.electronAPI.setWindowOpacity(val / 100);
+        });
+    }
+
+    // Glass hover slider — live preview
+    if (elements.glassHoverSlider) {
+        elements.glassHoverSlider.addEventListener('input', () => {
+            const val = parseInt(elements.glassHoverSlider.value);
+            elements.glassHoverValue.textContent = val + '%';
+            document.documentElement.style.setProperty('--glass-hover-opacity', val / 100);
+        });
+    }
+
+    // Session accent buttons — live preview
+    elements.sessionAccentBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            elements.sessionAccentBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            applyAccentVars(btn.dataset.accent, '');
+        });
+    });
+
+    // Weekly accent buttons — live preview
+    elements.weeklyAccentBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            elements.weeklyAccentBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            applyAccentVars(btn.dataset.accent, '-w');
+        });
+    });
+
+    // Compact mode toggle in normal settings panel — deferred to Done click
+
+    // Compact mode toggle in compact settings panel — just updates the checkbox, Done applies it
+    elements.compactModeToggleCompact.addEventListener('change', () => {
+        // No immediate action — Done button reads this value and applies
+    });
+
+    // Settings button — open compact settings if in compact mode, full settings otherwise
+    elements.settingsBtn.addEventListener('click', async () => {
+        stopAutoUpdate();
+        if (isCompactMode) {
+            elements.compactModeToggleCompact.checked = isCompactMode;
+            elements.compactSettingsOverlay.style.display = 'flex';
+        } else {
+            await loadSettings();
+            elements.settingsOverlay.style.display = 'flex';
+            window.electronAPI.resizeWindow(520);
+        }
+    });
+
+    // Close compact settings — apply compact toggle value then close
+    elements.closeCompactSettingsBtn.addEventListener('click', async () => {
+        const compact = elements.compactModeToggleCompact.checked;
+        if (compact !== isCompactMode) {
+            applyCompactMode(compact);
+            await _saveCompactSetting(compact);
+        }
+        elements.compactSettingsOverlay.style.display = 'none';
+        startAutoUpdate();
+    });
+}
+
+// Handle manual sessionKey connect
+async function handleConnect() {
+    const sessionKey = elements.sessionKeyInput.value.trim();
+    if (!sessionKey) {
+        elements.sessionKeyError.textContent = 'Please paste your session key';
+        return;
+    }
+
+    elements.connectBtn.disabled = true;
+    elements.connectBtn.textContent = '...';
+    elements.sessionKeyError.textContent = '';
+
+    try {
+        const result = await window.electronAPI.validateSessionKey(sessionKey);
+        if (result.success) {
+            credentials = { sessionKey, organizationId: result.organizationId };
+            await window.electronAPI.saveCredentials(credentials);
+            elements.sessionKeyInput.value = '';
+            showMainContent();
+            await fetchUsageData();
+            startAutoUpdate();
+        } else {
+            elements.sessionKeyError.textContent = result.error || 'Invalid session key';
+        }
+    } catch (error) {
+        elements.sessionKeyError.textContent = 'Connection failed. Check your key.';
+    } finally {
+        elements.connectBtn.disabled = false;
+        elements.connectBtn.textContent = 'Connect';
+    }
+}
+
+// Handle auto-detect from browser cookies
+async function handleAutoDetect() {
+    elements.autoDetectBtn.disabled = true;
+    elements.autoDetectBtn.textContent = 'Waiting...';
+    elements.autoDetectError.textContent = '';
+
+    try {
+        const result = await window.electronAPI.detectSessionKey();
+        if (!result.success) {
+            elements.autoDetectError.textContent = result.error || 'Login failed';
+            return;
+        }
+
+        // Got sessionKey from login, now validate it
+        elements.autoDetectBtn.textContent = 'Validating...';
+        const validation = await window.electronAPI.validateSessionKey(result.sessionKey);
+
+        if (validation.success) {
+            credentials = {
+                sessionKey: result.sessionKey,
+                organizationId: validation.organizationId
+            };
+            await window.electronAPI.saveCredentials(credentials);
+            showMainContent();
+            await fetchUsageData();
+            startAutoUpdate();
+        } else {
+            elements.autoDetectError.textContent =
+                'Session invalid. Try again or use Manual →';
+        }
+    } catch (error) {
+        elements.autoDetectError.textContent = error.message || 'Login failed';
+    } finally {
+        elements.autoDetectBtn.disabled = false;
+        elements.autoDetectBtn.textContent = 'Log in';
+    }
+}
+
+// Fetch usage data from Claude API
+async function fetchUsageData() {
+    debugLog('fetchUsageData called');
+
+    if (isFetching) {
+        debugLog('Fetch already in flight — skipping');
+        return;
+    }
+
+    if (!credentials.sessionKey || !credentials.organizationId) {
+        debugLog('Missing credentials, showing login');
+        showLoginRequired();
+        return;
+    }
+
+    isFetching = true;
+    try {
+        debugLog('Calling electronAPI.fetchUsageData...');
+        const data = await window.electronAPI.fetchUsageData();
+        debugLog('Received usage data:', data);
+        updateUI(data);
+    } catch (error) {
+        console.error('Error fetching usage data:', error);
+        if (error.message.includes('SessionExpired') || error.message.includes('Unauthorized')) {
+            credentials = { sessionKey: null, organizationId: null };
+            showLoginRequired();
+        } else {
+            debugLog('Failed to fetch usage data');
+        }
+    } finally {
+        isFetching = false;
+    }
+}
+
+
+// Update UI with usage data
+// Format a cent-based amount with the correct currency symbol.
+// Known unambiguous symbols are used; everything else falls back to the
+// ISO 4217 code as a suffix so the display is always correct.
+function formatCurrency(amountCents, currencyCode) {
+  const amount = (amountCents / 100).toFixed(0);
+  const symbols = { USD: '$', EUR: '€', GBP: '£' };
+  const sym = symbols[currencyCode];
+  return sym ? `${sym}${amount}` : `${amount} ${currencyCode || 'USD'}`;
+}
+
+// Extra row label mapping for API fields
+const EXTRA_ROW_CONFIG = {
+    seven_day_sonnet: { label: 'Sonnet (7d)', color: 'weekly' },
+    seven_day_opus: { label: 'Opus (7d)', color: 'opus' },
+    seven_day_cowork: { label: 'Cowork (7d)', color: 'weekly' },
+    seven_day_oauth_apps: { label: 'OAuth Apps (7d)', color: 'weekly' },
+    extra_usage: { label: 'Extra Usage', color: 'extra' },
+};
+
+function buildExtraRows(data) {
+    elements.extraRows.innerHTML = '';
+    let count = 0;
+
+    for (const [key, config] of Object.entries(EXTRA_ROW_CONFIG)) {
+        const value = data[key];
+        // extra_usage is valid with utilization OR balance_cents (prepaid only)
+        const hasUtilization = value && value.utilization !== undefined;
+        const hasBalance = key === 'extra_usage' && value && value.balance_cents != null;
+        if (!hasUtilization && !hasBalance) continue;
+
+        const utilization = value.utilization || 0;
+        const resetsAt = value.resets_at;
+        const colorClass = config.color;
+
+        const row = document.createElement('div');
+        row.className = 'usage-section';
+
+        // Build row using DOM methods (no innerHTML)
+        const label = document.createElement('span');
+        label.className = 'usage-label';
+        
+        if (key === 'extra_usage') {
+            // Extra usage: ON/OFF indicator goes next to label
+            if (value.is_enabled === true) {
+                const statusTag = document.createElement('span');
+                statusTag.className = 'extra-status on';
+                statusTag.textContent = 'ON';
+                label.appendChild(statusTag);
+            } else if (value.is_enabled === false) {
+                const statusTag = document.createElement('span');
+                statusTag.className = 'extra-status off';
+                statusTag.textContent = 'OFF';
+                label.appendChild(statusTag);
+            }
+            label.appendChild(document.createTextNode(' Extra Usage'));
+        } else {
+            label.textContent = config.label;
+        }
+        row.appendChild(label);
+
+        if (key === 'extra_usage') {
+            // Extra usage: bar col shows $used/$limit, elapsed col empty, timer col shows account credits
+            const barGroup = document.createElement('div');
+            barGroup.className = 'usage-bar-group';
+            const progressBar = document.createElement('div');
+            progressBar.className = 'progress-bar';
+            const progressFill = document.createElement('div');
+            progressFill.className = `progress-fill ${colorClass}`;
+            progressFill.style.width = `${Math.min(utilization, 100)}%`;
+            
+            // Apply warning/danger thresholds to extra usage bar
+            if (utilization >= dangerThreshold) {
+                progressFill.classList.add('danger');
+            } else if (utilization >= warnThreshold) {
+                progressFill.classList.add('warning');
+            }
+            
+            progressBar.appendChild(progressFill);
+            barGroup.appendChild(progressBar);
+
+            const percentage = document.createElement('span');
+            if (value.used_cents != null && value.limit_cents != null) {
+                percentage.className = 'usage-percentage extra-spending';
+                percentage.textContent = `${formatCurrency(value.used_cents, value.currency)}/${formatCurrency(value.limit_cents, value.currency)}`;
+            } else {
+                percentage.className = 'usage-percentage';
+                percentage.textContent = `${Math.round(utilization)}%`;
+            }
+            barGroup.appendChild(percentage);
+            row.appendChild(barGroup);
+
+            const elapsedGroup = document.createElement('div');
+            elapsedGroup.className = 'usage-elapsed-group';
+            row.appendChild(elapsedGroup);
+
+            const timerText = document.createElement('span');
+            timerText.className = 'timer-text extra-balance-label';
+            timerText.textContent = 'Account Credits:';
+            row.appendChild(timerText);
+
+            const resetsText = document.createElement('span');
+            resetsText.className = 'resets-at-text extra-balance-amount';
+            if (value.balance_cents != null) {
+                resetsText.textContent = formatCurrency(value.balance_cents, value.currency);
+            }
+            row.appendChild(resetsText);
+        } else {
+            const totalMinutes = key.includes('seven_day') ? 7 * 24 * 60 : 5 * 60;
+
+            const barGroup = document.createElement('div');
+            barGroup.className = 'usage-bar-group';
+            const progressBar = document.createElement('div');
+            progressBar.className = 'progress-bar';
+            const progressFill = document.createElement('div');
+            progressFill.className = `progress-fill ${colorClass}`;
+            progressFill.style.width = `${Math.min(utilization, 100)}%`;
+            progressBar.appendChild(progressFill);
+            barGroup.appendChild(progressBar);
+
+            const percentage = document.createElement('span');
+            percentage.className = 'usage-percentage';
+            percentage.textContent = `${Math.round(utilization)}%`;
+            barGroup.appendChild(percentage);
+            row.appendChild(barGroup);
+
+            const elapsedGroup = document.createElement('div');
+            elapsedGroup.className = 'usage-elapsed-group';
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('class', 'mini-timer');
+            svg.setAttribute('width', '24');
+            svg.setAttribute('height', '24');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            const circleBg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circleBg.setAttribute('class', 'timer-bg');
+            circleBg.setAttribute('cx', '12');
+            circleBg.setAttribute('cy', '12');
+            circleBg.setAttribute('r', '10');
+            svg.appendChild(circleBg);
+            const circleProgress = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circleProgress.setAttribute('class', `timer-progress ${colorClass}`);
+            circleProgress.setAttribute('cx', '12');
+            circleProgress.setAttribute('cy', '12');
+            circleProgress.setAttribute('r', '10');
+            circleProgress.style.strokeDasharray = '63';
+            circleProgress.style.strokeDashoffset = '63';
+            svg.appendChild(circleProgress);
+            elapsedGroup.appendChild(svg);
+            row.appendChild(elapsedGroup);
+
+            const timerText = document.createElement('div');
+            timerText.className = 'timer-text';
+            timerText.dataset.resets = resetsAt || '';
+            timerText.dataset.total = totalMinutes;
+            timerText.textContent = '--:--';
+            row.appendChild(timerText);
+
+            const resetsText = document.createElement('span');
+            resetsText.className = 'resets-at-text';
+            row.appendChild(resetsText);
+        }
+
+        elements.extraRows.appendChild(row);
+        count++;
+    }
+
+    // Hide toggle if no extra rows
+    elements.expandToggle.style.display = count > 0 ? 'flex' : 'none';
+    if (count === 0 && isExpanded) {
+        isExpanded = false;
+        elements.expandArrow.classList.remove('expanded');
+        elements.expandSection.style.display = 'none';
+    }
+
+    return count;
+}
+
+function refreshExtraTimers() {
+    const timerTexts = elements.extraRows.querySelectorAll('.timer-text');
+    const timerCircles = elements.extraRows.querySelectorAll('.timer-progress');
+
+    timerTexts.forEach((textEl, i) => {
+        const resetsAt = textEl.dataset.resets;
+        const totalMinutes = parseInt(textEl.dataset.total);
+        const circleEl = timerCircles[i];
+        if (resetsAt && circleEl) {
+            updateTimer(circleEl, textEl, resetsAt, totalMinutes);
+        }
+    });
+}
+
+const BANNER_HEIGHT = 28;
+const EXPAND_OVERHEAD = 28; // margin-top(12) + padding-top(6) + bottom buffer(10)
+
+function resizeWidget(bannerVisible) {
+    const hasBanner = bannerVisible !== undefined
+        ? bannerVisible
+        : elements.updateBanner.style.display !== 'none';
+    const bannerOffset = hasBanner ? BANNER_HEIGHT : 0;
+    const extraCount = elements.extraRows.children.length;
+    const expandedOffset = isExpanded && extraCount > 0
+        ? EXPAND_OVERHEAD + (extraCount * WIDGET_ROW_HEIGHT)
+        : 0;
+    const graphOffset = graphVisible ? GRAPH_HEIGHT : 0;
+    const totalHeight = WIDGET_HEIGHT_COLLAPSED + expandedOffset + graphOffset + bannerOffset;
+    window.electronAPI.resizeWindow(totalHeight);
+}
+
+function updateUI(data) {
+    latestUsageData = data;
+
+    showMainContent();
+    buildExtraRows(data);
+    refreshTimers();
+    if (isExpanded) refreshExtraTimers();
+    if (!isCompactMode) resizeWidget();
+    startCountdown();
+    if (graphVisible) {
+        loadChart();
+    }
+
+    // Update compact bars in parallel if compact mode is active
+    if (isCompactMode) updateCompactBars(data);
+
+    // On first load, seed alert flags so we don't fire for thresholds
+    // the user can already see when the app starts
+    if (isFirstDataLoad) {
+        isFirstDataLoad = false;
+        seedAlertFlags(data);
+    }
+
+    checkUsageAlerts(data);
+}
+
+// Fire OS desktop notifications when usage crosses warn/danger thresholds.
+// Only fires once per threshold crossing per session window — not on every refresh.
+function checkUsageAlerts(data) {
+    const settings = window._cachedSettings || {};
+    if (!settings.usageAlerts) return;
+
+    const sessionPct = data.five_hour?.utilization || 0;
+    const weeklyPct = data.seven_day?.utilization || 0;
+
+    // Reset alert flags when a session window resets (utilization drops back low)
+    if (sessionPct < warnThreshold) {
+        alertFired.session_warn = false;
+        alertFired.session_danger = false;
+    }
+    if (weeklyPct < warnThreshold) {
+        alertFired.weekly_warn = false;
+        alertFired.weekly_danger = false;
+    }
+
+    // Current Session — danger threshold (check first, higher priority)
+    if (sessionPct >= dangerThreshold && !alertFired.session_danger) {
+        alertFired.session_danger = true;
+        alertFired.session_warn = true; // suppress warn if we jumped straight to danger
+        window.electronAPI.showNotification(
+            'Claude Usage Widget',
+            `Current Session usage is at ${Math.round(sessionPct)}% — running low`
+        );
+    // Current Session — warn threshold
+    } else if (sessionPct >= warnThreshold && !alertFired.session_warn) {
+        alertFired.session_warn = true;
+        window.electronAPI.showNotification(
+            'Claude Usage Widget',
+            `Current Session usage has reached ${Math.round(sessionPct)}%`
+        );
+    }
+
+    // Weekly Limit — danger threshold
+    if (weeklyPct >= dangerThreshold && !alertFired.weekly_danger) {
+        alertFired.weekly_danger = true;
+        alertFired.weekly_warn = true;
+        window.electronAPI.showNotification(
+            'Claude Usage Widget',
+            `Weekly Limit usage is at ${Math.round(weeklyPct)}% — running low`
+        );
+    // Weekly Limit — warn threshold
+    } else if (weeklyPct >= warnThreshold && !alertFired.weekly_warn) {
+        alertFired.weekly_warn = true;
+        window.electronAPI.showNotification(
+            'Claude Usage Widget',
+            `Weekly Limit usage has reached ${Math.round(weeklyPct)}%`
+        );
+    }
+}
+
+// Apply or remove compact mode — switches view, resizes window, syncs all toggles
+function applyCompactMode(compact) {
+    isCompactMode = compact;
+
+    // Show/hide the correct content view
+    elements.mainContent.style.display = compact ? 'none' : 'block';
+    elements.compactContent.style.display = compact ? 'flex' : 'none';
+
+    // Collapse extra rows when entering compact — prevents stale isExpanded state
+    if (compact && isExpanded) {
+        isExpanded = false;
+        elements.expandArrow.classList.remove('expanded');
+        elements.expandSection.style.display = 'none';
+    }
+
+    if (compact && graphVisible) {
+        graphWasVisible = true;
+        graphVisible = false;
+        elements.graphBtn.classList.remove('active');
+        elements.graphSection.style.display = 'none';
+    } else if (!compact && graphWasVisible) {
+        graphWasVisible = false;
+        graphVisible = true;
+        elements.graphBtn.classList.add('active');
+        elements.graphSection.style.display = 'block';
+        loadChart();
+    }
+
+    // Show/hide the collapse chevron (only visible in normal mode with data)
+    if (elements.compactCollapseBtn) {
+        elements.compactCollapseBtn.style.display = compact ? 'none' : 'flex';
+    }
+
+    // Keep refresh button visible in compact mode so users can see when data updates
+    // Hide graph button in compact mode (not applicable)
+    if (elements.graphBtn) {
+        elements.graphBtn.style.display = compact ? 'none' : '';
+    }
+
+    // Tell main process to resize the window width
+    window.electronAPI.setCompactMode(compact);
+
+    // Sync both settings toggles
+    if (elements.compactModeToggle) elements.compactModeToggle.checked = compact;
+    if (elements.compactModeToggleCompact) elements.compactModeToggleCompact.checked = compact;
+
+    // Update compact bars if we have data
+    if (compact && latestUsageData) updateCompactBars(latestUsageData);
+    if (!compact) resizeWidget();
+
+    // Persist graph/expanded state changes caused by compact mode toggle
+    _saveViewState();
+}
+
+// Update the compact mode progress bars
+function updateCompactBars(data) {
+    const sessionPct = Math.min(Math.max(data.five_hour?.utilization || 0, 0), 100);
+    const weeklyPct = Math.min(Math.max(data.seven_day?.utilization || 0, 0), 100);
+
+    elements.compactSessionFill.style.width = `${sessionPct}%`;
+    elements.compactSessionPct.textContent = `${Math.round(sessionPct)}%`;
+    elements.compactWeeklyFill.style.width = `${weeklyPct}%`;
+    elements.compactWeeklyPct.textContent = `${Math.round(weeklyPct)}%`;
+
+    // Apply warning/danger classes to compact bars
+    elements.compactSessionFill.className = 'compact-bar-fill';
+    if (sessionPct >= dangerThreshold) elements.compactSessionFill.classList.add('danger');
+    else if (sessionPct >= warnThreshold) elements.compactSessionFill.classList.add('warning');
+
+    elements.compactWeeklyFill.className = 'compact-bar-fill weekly';
+    if (weeklyPct >= dangerThreshold) elements.compactWeeklyFill.classList.add('danger');
+    else if (weeklyPct >= warnThreshold) elements.compactWeeklyFill.classList.add('warning');
+}
+// Persist compact mode setting without touching the rest of settings — debounced
+let _saveCompactTimer = null;
+async function _saveCompactSetting(compact) {
+    if (_saveCompactTimer) clearTimeout(_saveCompactTimer);
+    _saveCompactTimer = setTimeout(async () => {
+        const settings = window._cachedSettings || await window.electronAPI.getSettings();
+        settings.compactMode = compact;
+        window._cachedSettings = settings;
+        await window.electronAPI.saveSettings(settings);
+    }, 300);
+}
+
+// Persist graph/expanded visibility state — debounced to avoid hammering disk on rapid toggles
+let _saveViewStateTimer = null;
+async function _saveViewState() {
+    if (appInitializing) return;
+    if (_saveViewStateTimer) clearTimeout(_saveViewStateTimer);
+    _saveViewStateTimer = setTimeout(async () => {
+        const settings = window._cachedSettings || await window.electronAPI.getSettings();
+        settings.graphVisible = graphVisible;
+        settings.expandedOpen = isExpanded;
+        window._cachedSettings = settings;
+        await window.electronAPI.saveSettings(settings);
+    }, 300);
+}
+
+let sessionResetTriggered = false;
+let weeklyResetTriggered = false;
+let isFirstDataLoad = true; // used to seed alert flags on startup
+
+// Track which usage alert thresholds have already fired this window
+// Prevents repeat notifications on every refresh cycle
+// Keys: 'session_warn', 'session_danger', 'weekly_warn', 'weekly_danger'
+// Seeded on startup so thresholds already exceeded at launch don't fire immediately
+const alertFired = {
+    session_warn: false,
+    session_danger: false,
+    weekly_warn: false,
+    weekly_danger: false
+};
+
+// Seed alertFired flags based on current utilization at startup.
+// Any threshold already exceeded when the app launches is treated as already fired,
+// so the user doesn't get a notification for something they can already see.
+function seedAlertFlags(data) {
+    const sessionPct = data.five_hour?.utilization || 0;
+    const weeklyPct = data.seven_day?.utilization || 0;
+
+    if (sessionPct >= dangerThreshold) {
+        alertFired.session_danger = true;
+        alertFired.session_warn = true;
+    } else if (sessionPct >= warnThreshold) {
+        alertFired.session_warn = true;
+    }
+
+    if (weeklyPct >= dangerThreshold) {
+        alertFired.weekly_danger = true;
+        alertFired.weekly_warn = true;
+    } else if (weeklyPct >= warnThreshold) {
+        alertFired.weekly_warn = true;
+    }
+}
+
+function refreshTimers() {
+    if (!latestUsageData) return;
+
+    const settings = window._cachedSettings || {};
+    const timeFormat = settings.timeFormat || '12h';
+    const weeklyDateFormat = settings.weeklyDateFormat || 'date';
+
+    // Session data
+    const sessionUtilization = latestUsageData.five_hour?.utilization || 0;
+    const sessionResetsAt = latestUsageData.five_hour?.resets_at;
+
+    // Check if session timer has expired and we need to refresh
+    if (sessionResetsAt) {
+        const sessionDiff = new Date(sessionResetsAt) - new Date();
+        if (sessionDiff <= 0 && !sessionResetTriggered) {
+            sessionResetTriggered = true;
+            debugLog('Session timer expired, triggering refresh...');
+            // Wait a few seconds for the server to update, then refresh
+            setTimeout(() => {
+                fetchUsageData();
+                checkForUpdate();
+            }, 3000);
+        } else if (sessionDiff > 0) {
+            sessionResetTriggered = false; // Reset flag when timer is active again
+        }
+    }
+
+    updateProgressBar(
+        elements.sessionProgress,
+        elements.sessionPercentage,
+        sessionUtilization
+    );
+
+    updateTimer(
+        elements.sessionTimer,
+        elements.sessionTimeText,
+        sessionResetsAt,
+        5 * 60 // 5 hours in minutes
+    );
+    elements.sessionResetsAt.textContent = formatResetsAt(sessionResetsAt, false, timeFormat, weeklyDateFormat);
+    elements.sessionResetsAt.style.opacity = sessionResetsAt ? '1' : '0.4';
+
+    // Weekly data
+    const weeklyUtilization = latestUsageData.seven_day?.utilization || 0;
+    const weeklyResetsAt = latestUsageData.seven_day?.resets_at;
+
+    // Check if weekly timer has expired and we need to refresh
+    if (weeklyResetsAt) {
+        const weeklyDiff = new Date(weeklyResetsAt) - new Date();
+        if (weeklyDiff <= 0 && !weeklyResetTriggered) {
+            weeklyResetTriggered = true;
+            debugLog('Weekly timer expired, triggering refresh...');
+            setTimeout(() => {
+                fetchUsageData();
+            }, 3000);
+        } else if (weeklyDiff > 0) {
+            weeklyResetTriggered = false;
+        }
+    }
+
+    updateProgressBar(
+        elements.weeklyProgress,
+        elements.weeklyPercentage,
+        weeklyUtilization,
+        true
+    );
+
+    updateTimer(
+        elements.weeklyTimer,
+        elements.weeklyTimeText,
+        weeklyResetsAt,
+        7 * 24 * 60 // 7 days in minutes
+    );
+    elements.weeklyResetsAt.textContent = formatResetsAt(weeklyResetsAt, true, timeFormat, weeklyDateFormat);
+    elements.weeklyResetsAt.style.opacity = weeklyResetsAt ? '1' : '0.4';
+}
+
+function startCountdown() {
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+        refreshTimers();
+        if (isExpanded) refreshExtraTimers();
+    }, 1000);
+}
+
+// Update progress bar
+function updateProgressBar(progressElement, percentageElement, value, isWeekly = false) {
+    const percentage = Math.min(Math.max(value, 0), 100);
+
+    progressElement.style.width = `${percentage}%`;
+    percentageElement.textContent = `${Math.round(percentage)}%`;
+
+    progressElement.classList.remove('warning', 'danger');
+    if (percentage >= dangerThreshold) {
+        progressElement.classList.add('danger');
+    } else if (percentage >= warnThreshold) {
+        progressElement.classList.add('warning');
+    }
+}
+
+// Format reset date for the "Resets At" column
+// Session: shows time like "3:59 PM" or "15:59"
+// Weekly: shows date like "Mar 13", "Fri Mar 13", or "Fri Mar 13 3:59 PM"
+function formatResetsAt(resetsAt, isWeekly, timeFormat, weeklyDateFormat) {
+    if (!resetsAt) return '—';
+    const date = new Date(resetsAt);
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    const formatTime = (d) => {
+        if (timeFormat === '24h') {
+            return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        } else {
+            let hours = d.getHours();
+            const minutes = d.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+            return `${hours}:${minutes} ${ampm}`;
+        }
+    };
+
+    if (isWeekly) {
+        const dayStr = days[date.getDay()];
+        const monthStr = months[date.getMonth()];
+        const dayNum = date.getDate();
+        const fmt = weeklyDateFormat || 'date';
+        if (fmt === 'date-day') return `${dayStr} ${monthStr} ${dayNum}`;
+        if (fmt === 'date-day-time') return `${dayStr} ${monthStr} ${dayNum} ${formatTime(date)}`;
+        return `${monthStr} ${dayNum}`; // default: 'date'
+    } else {
+        return formatTime(date);
+    }
+}
+
+// Update circular timer
+function updateTimer(timerElement, textElement, resetsAt, totalMinutes) {
+    if (!resetsAt) {
+        textElement.textContent = 'Not started';
+        textElement.style.opacity = '0.4';
+        textElement.style.fontSize = '10px';
+        textElement.title = 'Starts when a message is sent';
+        timerElement.style.strokeDashoffset = 63;
+        return;
+    }
+
+    // Clear the greyed out styling when timer is active
+    textElement.style.opacity = '1';
+    textElement.style.fontSize = '';
+    textElement.title = '';
+
+    const resetDate = new Date(resetsAt);
+    const now = new Date();
+    const diff = resetDate - now;
+
+    if (diff <= 0) {
+        textElement.textContent = 'Resetting...';
+        timerElement.style.strokeDashoffset = 0;
+        return;
+    }
+
+    // Calculate remaining time
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    // const seconds = Math.floor((diff % (1000 * 60)) / 1000); // Optional seconds
+
+    // Format time display
+    if (hours >= 24) {
+        const days = Math.floor(hours / 24);
+        const remainingHours = hours % 24;
+        textElement.textContent = `${days}d ${remainingHours}h`;
+    } else if (hours > 0) {
+        textElement.textContent = `${hours}h ${minutes}m`;
+    } else {
+        textElement.textContent = `${minutes}m`;
+    }
+
+    // Calculate progress (elapsed percentage)
+    const totalMs = totalMinutes * 60 * 1000;
+    const elapsedMs = totalMs - diff;
+    const elapsedPercentage = (elapsedMs / totalMs) * 100;
+
+    // Update circle (63 is ~2*pi*10)
+    const circumference = 63;
+    const offset = circumference - (elapsedPercentage / 100) * circumference;
+    timerElement.style.strokeDashoffset = offset;
+
+    // Update color based on remaining time
+    timerElement.classList.remove('warning', 'danger');
+    if (elapsedPercentage >= 90) {
+        timerElement.classList.add('danger');
+    } else if (elapsedPercentage >= 75) {
+        timerElement.classList.add('warning');
+    }
+}
+
+// UI State Management
+function showLoginRequired() {
+    elements.loadingContainer.style.display = 'none';
+    elements.loginContainer.style.display = 'flex';
+    elements.noUsageContainer.style.display = 'none';
+    elements.mainContent.style.display = 'none';
+    // Reset to step 1
+    elements.loginStep1.style.display = 'flex';
+    elements.loginStep2.style.display = 'none';
+    elements.sessionKeyError.textContent = '';
+    elements.sessionKeyInput.value = '';
+    // Close any open overlays
+    elements.settingsOverlay.style.display = 'none';
+    elements.compactSettingsOverlay.style.display = 'none';
+    // Hide header buttons during login
+    elements.settingsBtn.style.display = 'none';
+    elements.refreshBtn.style.display = 'none';
+    elements.graphBtn.style.display = 'none';
+    stopAutoUpdate();
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+    // Reset fetch guard so it can't get permanently stuck across login/logout
+    isFetching = false;
+    // Reset alert state so a new session doesn't inherit suppressed alerts
+    isFirstDataLoad = true;
+    alertFired.session_warn = false;
+    alertFired.session_danger = false;
+    alertFired.weekly_warn = false;
+    alertFired.weekly_danger = false;
+}
+
+function showMainContent() {
+    elements.loadingContainer.style.display = 'none';
+    elements.loginContainer.style.display = 'none';
+    elements.noUsageContainer.style.display = 'none';
+    // Respect compact mode — don't force mainContent visible if we're in compact
+    if (!isCompactMode) {
+        elements.mainContent.style.display = 'block';
+    }
+    elements.compactContent.style.display = isCompactMode ? 'flex' : 'none';
+    // Always show collapse chevron here — applyCompactMode hides it when needed
+    if (elements.compactCollapseBtn) {
+        elements.compactCollapseBtn.style.display = isCompactMode ? 'none' : 'flex';
+    }
+    // Restore header buttons after login
+    elements.settingsBtn.style.display = 'flex';
+    elements.refreshBtn.style.display = 'flex';
+    elements.graphBtn.style.display = 'flex';
+}
+
+// Auto-update management
+function startAutoUpdate() {
+    stopAutoUpdate();
+    const settings = window._cachedSettings || {};
+    const intervalSecs = parseInt(settings.refreshInterval) || 300;
+    updateInterval = setInterval(async () => {
+        if (elements.refreshBtn) elements.refreshBtn.classList.add('spinning');
+        await fetchUsageData();
+        if (elements.refreshBtn) elements.refreshBtn.classList.remove('spinning');
+    }, intervalSecs * 1000);
+}
+
+function stopAutoUpdate() {
+    if (updateInterval) {
+        clearInterval(updateInterval);
+        updateInterval = null;
+    }
+}
+
+async function loadChart() {
+    const history = await window.electronAPI.getUsageHistory();
+    if (!history.length) return;
+    renderChart(history);
+}
+
+function renderChart(history) {
+    if (usageChart) usageChart.destroy();
+
+    const showSonnet = isExpanded && !!latestUsageData?.seven_day_sonnet;
+    const showExtraUsage = isExpanded && !!latestUsageData?.extra_usage;
+    const allValues = history.flatMap((entry) => {
+        const values = [entry.session, entry.weekly];
+        if (showSonnet) values.push(entry.sonnet || 0);
+        if (showExtraUsage) values.push(entry.extraUsage || 0);
+        return values;
+    });
+    const yMax = Math.max(10, Math.ceil(Math.max(...allValues) / 10) * 10);
+
+    const datasets = [
+        {
+            label: 'Session',
+            data: history.map((entry) => entry.session),
+            borderColor: '#8b5cf6',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            stepped: true,
+            pointRadius: 0,
+            pointHoverRadius: 3,
+            pointHitRadius: 10
+        },
+        {
+            label: 'Weekly',
+            data: history.map((entry) => entry.weekly),
+            borderColor: '#3b82f6',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            stepped: true,
+            pointRadius: 0,
+            pointHoverRadius: 3,
+            pointHitRadius: 10
+        }
+    ];
+
+    if (showSonnet) {
+        const sonnetData = history.map((entry) => entry.sonnet || 0);
+        if (sonnetData.some((value) => value > 0)) {
+            datasets.push({
+            label: 'Sonnet',
+            data: sonnetData,
+            borderColor: '#10b981',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            stepped: true,
+            pointRadius: 0,
+            pointHoverRadius: 3,
+            pointHitRadius: 10
+            });
+        }
+    }
+
+    if (showExtraUsage) {
+        const extraUsageData = history.map((entry) => entry.extraUsage || 0);
+        if (extraUsageData.some((value) => value > 0)) {
+            datasets.push({
+            label: 'Extra Usage',
+            data: extraUsageData,
+            borderColor: '#f59e0b',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            stepped: true,
+            pointRadius: 0,
+            pointHoverRadius: 3,
+            pointHitRadius: 10
+            });
+        }
+    }
+
+    usageChart = new Chart(elements.usageChart.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: history.map((entry) => entry.timestamp),
+            datasets
+        },
+        options: {
+            animation: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'nearest'
+            },
+            scales: {
+                x: {
+                    offset: true,
+                    ticks: {
+                        autoSkip: false,
+                        maxRotation: 0,
+                        minRotation: 0,
+                        font: {
+                            size: 10
+                        },
+                        callback(value, index) {
+                            const tf = (window._cachedSettings || {}).timeFormat || '12h';
+                            return formatXAxisTick(history, index, tf);
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    min: 0,
+                    max: yMax,
+                    ticks: {
+                        font: {
+                            size: 10
+                        },
+                        callback: (value) => `${value}%`
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        title(items) {
+                            const point = history[items[0].dataIndex];
+                            return new Date(point.timestamp).toLocaleString([], {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit'
+                            });
+                        },
+                        label(item) {
+                            return `${item.dataset.label}: ${Math.round(item.parsed.y)}%`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function formatXAxisTick(history, index, timeFormat) {
+    const tickIndexes = getXAxisTickIndexes(history.length);
+    if (!tickIndexes.has(index)) {
+        return '';
+    }
+
+    const timestamp = history[index]?.timestamp;
+    if (!timestamp) {
+        return '';
+    }
+
+    const spanMs = Math.max(0, history[history.length - 1].timestamp - history[0].timestamp);
+    const date = new Date(timestamp);
+    const hour12 = (timeFormat || '12h') !== '24h';
+
+    if (spanMs < 12 * 60 * 60 * 1000) {
+        return date.toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12
+        });
+    }
+
+    if (spanMs < 48 * 60 * 60 * 1000) {
+        return date.toLocaleString([], {
+            weekday: 'short',
+            hour: 'numeric',
+            hour12
+        });
+    }
+
+    return date.toLocaleDateString([], {
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+function getXAxisTickIndexes(length) {
+    const indexes = new Set();
+    if (length <= 0) {
+        return indexes;
+    }
+
+    indexes.add(0);
+    if (length === 1) {
+        return indexes;
+    }
+
+    const targetTickCount = Math.min(5, length);
+    const lastIndex = length - 1;
+    indexes.add(lastIndex);
+
+    if (targetTickCount <= 2) {
+        return indexes;
+    }
+
+    const interval = lastIndex / (targetTickCount - 1);
+    for (let i = 1; i < targetTickCount - 1; i += 1) {
+        indexes.add(Math.round(interval * i));
+    }
+
+    return indexes;
+}
+
+// Add spinning animation for refresh button
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin-refresh {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    .refresh-btn.spinning svg {
+        animation: spin-refresh 1s linear infinite;
+    }
+`;
+document.head.appendChild(style);
+
+// Settings management
+let warnThreshold = 75;
+let dangerThreshold = 90;
+
+async function loadSettings() {
+    const settings = await window.electronAPI.getSettings();
+
+    elements.autoStartToggle.checked = settings.autoStart;
+    elements.minimizeToTrayToggle.checked = settings.minimizeToTray;
+    elements.alwaysOnTopToggle.checked = settings.alwaysOnTop;
+    elements.warnThreshold.value = settings.warnThreshold;
+    elements.dangerThreshold.value = settings.dangerThreshold;
+    elements.timeFormat.value = settings.timeFormat || '12h';
+    elements.weeklyDateFormat.value = settings.weeklyDateFormat || 'date';
+    if (elements.refreshInterval) elements.refreshInterval.value = settings.refreshInterval || '300';
+    elements.usageAlertsToggle.checked = settings.usageAlerts !== false;
+    if (elements.compactModeToggle) elements.compactModeToggle.checked = !!settings.compactMode;
+    if (elements.opacitySlider) {
+        elements.opacitySlider.value = settings.windowOpacity || 100;
+        elements.opacityValue.textContent = (settings.windowOpacity || 100) + '%';
+    }
+    if (elements.glassModeToggle) elements.glassModeToggle.checked = !!settings.glassMode;
+    if (elements.pixelShiftToggle) elements.pixelShiftToggle.checked = !!settings.pixelShift;
+    if (elements.glassHoverSlider) {
+        elements.glassHoverSlider.value = settings.glassHoverOpacity || 60;
+        elements.glassHoverValue.textContent = (settings.glassHoverOpacity || 60) + '%';
+    }
+    elements.sessionAccentBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.accent === (settings.sessionAccent || 'purple'));
+    });
+    elements.weeklyAccentBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.accent === (settings.weeklyAccent || 'blue'));
+    });
+    if (elements.showSessionToggle) elements.showSessionToggle.checked = settings.showSession !== false;
+    if (elements.showWeeklyToggle) elements.showWeeklyToggle.checked = settings.showWeekly !== false;
+    if (elements.showElapsedToggle) elements.showElapsedToggle.checked = settings.showElapsed !== false;
+    if (elements.showResetsInToggle) elements.showResetsInToggle.checked = settings.showResetsIn !== false;
+    if (elements.showResetsAtToggle) elements.showResetsAtToggle.checked = settings.showResetsAt !== false;
+    if (elements.showLogoToggle) elements.showLogoToggle.checked = !!settings.showLogo;
+
+    warnThreshold = settings.warnThreshold;
+    dangerThreshold = settings.dangerThreshold;
+
+    elements.themeBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === settings.theme);
+    });
+
+    applyTheme(settings.theme);
+    if (window.electronAPI.platform === 'darwin') {
+        document.getElementById('trayLabel').textContent = 'Hide from Dock';
+    }
+}
+
+async function saveSettings() {
+    const activeThemeBtn = document.querySelector('.theme-btn.active');
+    const warn = parseInt(elements.warnThreshold.value) || 75;
+    const danger = parseInt(elements.dangerThreshold.value) || 90;
+
+    warnThreshold = warn;
+    dangerThreshold = danger;
+
+    // Apply compact mode change first, then include in saved settings
+    const compactToggleValue = elements.compactModeToggle.checked;
+    if (compactToggleValue !== isCompactMode) {
+        applyCompactMode(compactToggleValue);
+    }
+
+    // Apply glass mode
+    const glassToggleValue = elements.glassModeToggle ? elements.glassModeToggle.checked : false;
+    if (glassToggleValue !== isGlassMode) {
+        isGlassMode = glassToggleValue;
+        document.body.classList.toggle('glass-mode', isGlassMode);
+    }
+
+    // Apply pixel shift
+    const pixelShiftValue = elements.pixelShiftToggle ? elements.pixelShiftToggle.checked : false;
+    document.body.classList.toggle('pixel-shift', pixelShiftValue);
+
+    // Apply accent colors
+    const activeSessionAccent = document.querySelector('.accent-btn.session-accent.active');
+    const activeWeeklyAccent = document.querySelector('.accent-btn.weekly-accent.active');
+    const sessionAccent = activeSessionAccent ? activeSessionAccent.dataset.accent : 'purple';
+    const weeklyAccent = activeWeeklyAccent ? activeWeeklyAccent.dataset.accent : 'blue';
+    applyAccentVars(sessionAccent, '');
+    applyAccentVars(weeklyAccent, '-w');
+
+    // Apply column visibility
+    const showElapsed = elements.showElapsedToggle ? elements.showElapsedToggle.checked : true;
+    const showResetsIn = elements.showResetsInToggle ? elements.showResetsInToggle.checked : true;
+    const showResetsAt = elements.showResetsAtToggle ? elements.showResetsAtToggle.checked : true;
+    document.body.classList.toggle('hide-elapsed', !showElapsed);
+    document.body.classList.toggle('hide-resets-in', !showResetsIn);
+    document.body.classList.toggle('hide-resets-at', !showResetsAt);
+
+    // Apply logo visibility
+    const showLogo = elements.showLogoToggle ? elements.showLogoToggle.checked : false;
+    if (elements.claudeLogo) elements.claudeLogo.style.display = showLogo ? '' : 'none';
+
+    // Apply glass hover opacity
+    const glassHover = elements.glassHoverSlider ? parseInt(elements.glassHoverSlider.value) : 60;
+    document.documentElement.style.setProperty('--glass-hover-opacity', glassHover / 100);
+
+    // Apply row visibility
+    const showSession = elements.showSessionToggle ? elements.showSessionToggle.checked : true;
+    const showWeekly = elements.showWeeklyToggle ? elements.showWeeklyToggle.checked : true;
+    if (elements.sessionRow) elements.sessionRow.style.display = showSession ? '' : 'none';
+    if (elements.weeklyRow) elements.weeklyRow.style.display = showWeekly ? '' : 'none';
+
+    const settings = {
+        autoStart: elements.autoStartToggle.checked,
+        minimizeToTray: elements.minimizeToTrayToggle.checked,
+        alwaysOnTop: elements.alwaysOnTopToggle.checked,
+        theme: activeThemeBtn ? activeThemeBtn.dataset.theme : 'dark',
+        warnThreshold: warn,
+        dangerThreshold: danger,
+        timeFormat: elements.timeFormat.value || '12h',
+        weeklyDateFormat: elements.weeklyDateFormat.value || 'date',
+        refreshInterval: elements.refreshInterval ? (elements.refreshInterval.value || '300') : '300',
+        usageAlerts: elements.usageAlertsToggle.checked,
+        compactMode: isCompactMode,
+        graphVisible: graphVisible,
+        expandedOpen: isExpanded,
+        windowOpacity: elements.opacitySlider ? parseInt(elements.opacitySlider.value) : 100,
+        glassMode: isGlassMode,
+        pixelShift: elements.pixelShiftToggle ? elements.pixelShiftToggle.checked : false,
+        sessionAccent: sessionAccent,
+        weeklyAccent: weeklyAccent,
+        glassHoverOpacity: elements.glassHoverSlider ? parseInt(elements.glassHoverSlider.value) : 60,
+        showSession: showSession,
+        showWeekly: showWeekly,
+        showElapsed: showElapsed,
+        showResetsIn: showResetsIn,
+        showResetsAt: showResetsAt,
+        showLogo: showLogo
+    };
+    await window.electronAPI.saveSettings(settings);
+    window._cachedSettings = settings;
+    applyTheme(settings.theme);
+    if (window.electronAPI.platform === 'darwin') {
+        document.getElementById('trayLabel').textContent = 'Hide from Dock';
+    }
+
+    // Re-render resets-at values immediately with new format
+    if (latestUsageData) {
+        refreshTimers();
+        // Rebuild extra rows to apply new threshold colors
+        if (isExpanded) {
+            buildExtraRows(latestUsageData);
+            refreshExtraTimers();
+        }
+    }
+    // Restart auto-update with new interval if it changed
+    startAutoUpdate();
+}
+
+function applyTheme(theme) {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isOled = theme === 'oled';
+    const useDark = isOled || theme === 'dark' || (theme === 'system' && prefersDark);
+    document.body.classList.toggle('theme-light', !useDark);
+    document.body.classList.toggle('theme-oled', isOled);
+}
+
+// Update check
+async function checkForUpdate() {
+    try {
+        const result = await window.electronAPI.checkForUpdate();
+        if (!result.hasUpdate) return;
+
+        const version = result.version;
+
+        // Show banner and expand window to compensate
+        elements.updateBannerText.textContent = `▲  Version ${version} available — click to download`;
+        elements.updateBanner.style.display = 'flex';
+        resizeWidget(true);
+
+        // Populate settings panel link if already visible
+        if (elements.settingsUpdateLink) {
+            elements.settingsUpdateLink.textContent = `→ v${version} available`;
+            elements.settingsUpdateLink.style.display = 'inline';
+        }
+
+        debugLog(`Update available: v${version}`);
+    } catch (e) {
+        debugLog('Update check failed silently', e);
+    }
+}
+
+// Start the application
+init();
+window.addEventListener('beforeunload', () => {
+    stopAutoUpdate();
+    if (countdownInterval) clearInterval(countdownInterval);
+});

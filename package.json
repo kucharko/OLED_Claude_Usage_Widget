@@ -1,0 +1,61 @@
+{
+  "name": "oled-claude-usage-monitor",
+  "version": "2.0.0",
+  "description": "OLED Claude Usage Monitor Widget — desktop widget for Claude.ai usage monitoring with OLED burn-in protection",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "dev": "cross-env NODE_ENV=development electron ."
+  },
+  "keywords": [
+    "claude",
+    "usage",
+    "widget",
+    "electron",
+    "oled"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "electron-store": "^8.1.0"
+  },
+  "build": {
+    "appId": "com.oled.claude.usage.monitor",
+    "productName": "OLED-Claude-Usage-Monitor",
+    "publish": null,
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}",
+      "unpackDirName": "oled-claude-usage-monitor"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
+    "files": [
+      "**/*",
+      "!**/*.ts",
+      "!*.md",
+      "CREDITS.md"
+    ]
+  }
+}
