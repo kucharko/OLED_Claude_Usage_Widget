@@ -67,6 +67,23 @@ connect-src 'none';
 
 No data is sent to any third-party server. The app only communicates with `claude.ai` and `api.github.com` (for update checks, currently disabled in this fork).
 
+## Session Key Disclaimer
+
+This app requires a **Claude.ai session key** to authenticate API requests. This is necessary because Claude.ai does not offer a public API or OAuth flow for usage monitoring — the session cookie is the only available authentication method.
+
+**What you should know:**
+
+- Your session key grants access to your Claude.ai account — treat it like a password
+- This app encrypts the key via your OS keychain and sends it **only** to `claude.ai`
+- The app never transmits your key to any third-party server
+- You provide your session key **at your own risk** — the author is not responsible for any misuse or unauthorized access resulting from session key exposure
+- If you suspect your key has been compromised, log out of Claude.ai in your browser to invalidate it immediately
+- You can review the full source code to verify exactly how the key is used
+
+> This is the same authentication approach used by the [original project](https://github.com/SlavomirDurej/claude-usage-widget) and other community-built Claude tools.
+
+---
+
 ## Reporting Issues
 
 If you find a security issue, please open an issue on [GitHub](https://github.com/kucharko/oled-claude-usage-monitor/issues) or contact the repository owner directly.
