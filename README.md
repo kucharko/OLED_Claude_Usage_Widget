@@ -86,15 +86,25 @@ Output in `dist/` folder — NSIS Setup .exe + portable .exe.
 
 ## Screenshots
 
-| Dark Theme | OLED + Glass Mode |
-|---|---|
-| Progress bars, timers, usage graph | Transparent overlay with hover-reveal controls |
+### OLED Theme
+![OLED Theme — full view](assets/screenshots/oled-theme-full.png)
+
+### Dark Theme
+![Dark Theme — compact view](assets/screenshots/dark-theme-compact.png)
+
+### Glass Mode
+![Glass Mode — session only](assets/screenshots/glass-session-only.png)
+
+![Glass Mode — dual bars with pixel shift](assets/screenshots/glass-dual-bars.png)
+
+### Settings
+![Settings panel](assets/screenshots/settings-panel.png)
 
 ---
 
 ## Tech Stack
 
-- **Electron 28** — desktop framework
+- **Electron 41** — desktop framework (Chromium 136)
 - **Chart.js** — usage history graph
 - **electron-store** — settings persistence (OS keychain encrypted)
 - **Vanilla JS** — no frontend framework dependencies
